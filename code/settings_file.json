@@ -1,0 +1,116 @@
+{
+    "full_hd": 1,
+    "variants": ["resnet18"],
+    "retina_net": {
+        "run_hpo": 1,
+        "optimal_hpo_settings": {
+            "gamma": false,
+            "lr": false,
+            "momentum": false,
+            "step_size": false,
+            "weight_decay": false
+        }
+    },
+    "resnet18": {
+        "run_hpo": 0,
+        "optimal_hpo_settings": {
+            "gamma": 0.9,
+            "lr": 0.01,
+            "momentum": 0.1,
+            "step_size": 5,
+            "weight_decay": 0.0007004410071105531
+        }
+    },
+    "resnet34": {
+        "run_hpo": 1
+    },
+    "resnet50": {
+        "run_hpo": 1,
+        "optimal_hpo_settings": {
+            "gamma": 0.01,
+            "lr": 0.000199607945,
+            "momentum": 0.9,
+            "step_size": 1,
+            "weight_decay": 1e-05
+        }
+    }
+    ,
+    "resnet101": {
+        "run_hpo": 1
+    },
+    "max_train_epochs": 10000,            
+    "max_plateau_count": 1000,
+    "search_epochs": 30,
+    "num_initial_data_points": "infer",
+    "max_num_trials": 32,
+    "annotations_list": [
+        "Seg FieldData 20200520145736 3R GH070072",	
+        "Seg FieldData 20200520145736 3R GH020072",
+        "Seg FieldData 20200520145736 1L GH020068",
+        "Seg FieldData 20200520145736 1L GH070068",
+        "Seg FieldData 20200520145736 1L GH010068",
+        "Seg FieldData 20200508122912 1L GH070066",
+        "Seg FieldData 20200508122912 3R GH070070",
+        "Seg FieldData 20200515101008 2R GH070120",
+        "Seg FieldData 20200515101008 2L GH070066",
+        "Seg FieldData 20200515101008 3R GH070071",
+        "FieldData 20200520145736 3R GH010072",
+        "FieldData 20200508122912 3R GH070070",
+        "FieldData 20190524161514 82 iframes",
+        "FieldData 20190529111505 09 iframes",
+        "FieldData 20200603102414 3R GH020082",
+        "FieldData 20190524161514 81 iframes",
+        "FieldData 20200520145736 1L GH050068",
+        "FieldData 20200520145736 1L GH020068",
+        "FieldData 20190529111505 07 iframes 2",
+        "FieldData 20200520145736 3R GH050072",
+        "FieldData 20200528110542 3R GH060073",
+        "FieldData 20200603102414 3R GH010081",
+        "FieldData 20190529111505 10 iframes2",
+        "FieldData 20200515101008 3R GH070071",
+        "FieldData 20190524161514 84 iframes",
+        "FieldData 20200528110542 1L GH020073",
+        "FieldData 20200528110542 1L GH010073",
+        "FieldData 20190529111505 06 iframes2",
+        "FieldData 20200528110542 1L GH060073",
+        "FieldData 20200515101008 2R GH070120",
+        "FieldData 20200603102414 1L GH010353",
+        "FieldData 20200520145736 3R GH070072",
+        "FieldData 20200508122912 1L GH070066",
+        "FieldData 20190524161514 82 iframes2",
+        "FieldData 20190529111505 08 iframes",
+        "FieldData 20200520145736 1L GH010068",
+        "FieldData 20190529111505 10 iframes",
+        "FieldData 20200508122912 1L GH060066",
+        "FieldData 20190529111505 06 iframes",
+        "FieldData 20200515101008 2L GH060066",
+        "FieldData 20200603102414 1L GH010352",
+        "FieldData 20200603102414 1L GH020352",
+        "FieldData 20200528110542 3R GH070073",
+        "FieldData 20200603102414 3R GH010082",
+        "FieldData 20200515101008 2R GH060120",
+        "FieldData 20200520145736 1L GH070068",
+        "FieldData 20190524161514 86 iframes",
+        "FieldData 20200515101008 1L GH070067",
+        "FieldData 20190524161514 83 iframes",        
+        "FieldData 20190524161514 81 iframes2",
+        "FieldData 20200515101008 2L GH070066",
+        "FieldData 20200515101008 3R GH060071",
+        "FieldData 20200520145736 1L GH060068",
+        "FieldData 20200520145736 3R GH060072",
+        "FieldData 20200528110542 1L GH070073",
+        "FieldData 20190529111505 05 iframes",
+        "FieldData 20200515101008 1L GH060067",
+        "FieldData 20200508122912 3R GH060070"
+    ],
+    "save_dir": "/train/pickled_weed",
+    "writer_dir": "/train/runs",
+    "dataset_dir": "/weed_data",
+    "sherpa_parameters": {
+        "lr": [0.0000001, 0.01],
+        "weight_decay": [0.00001, 0.9],
+        "momentum": [0.1, 0.9],
+        "step_size": [1, 5],
+        "gamma": [0.01, 0.9]
+    }
+}

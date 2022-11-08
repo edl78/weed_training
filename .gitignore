@@ -1,0 +1,5 @@
+.vscode
+code/.vscode
+code/runs
+code/__pycache__
+train

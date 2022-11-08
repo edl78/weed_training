@@ -1,0 +1,77 @@
+[
+    {
+        "name": "Creeping thistle",
+        "color": "#33ddff",
+        "attributes": []
+    },
+    {
+        "name": "Common furnitory",
+        "color": "#fa3253",
+        "attributes": []
+    },
+    {
+        "name": "Fat hen",
+        "color": "#34d1b7",
+        "attributes": []
+    },
+    {
+        "name": "Curled dock",
+        "color": "#ff007c",
+        "attributes": []
+    },
+    {
+        "name": "Dandelion",
+        "color": "#ff6037",
+        "attributes": []
+    },
+    {
+        "name": "Cleavers",
+        "color": "#ddff33",
+        "attributes": []
+    },
+    {
+        "name": "Unknown weed",
+        "color": "#24b353",
+        "attributes": []
+    },
+    {
+        "name": "Mug wort",
+        "color": "#b83df5",
+        "attributes": []
+    },
+    {
+        "name": "Rape",
+        "color": "#66ff66",
+        "attributes": []
+    },
+    {
+        "name": "Colt's foot",
+        "color": "#32b7fa",
+        "attributes": []
+    },
+    {
+        "name": "Hairy tail",
+        "color": "#ffcc33",
+        "attributes": []
+    },
+    {
+        "name": "Shepherd's purse",
+        "color": "#83e070",
+        "attributes": []
+    },
+    {
+        "name": "Scentless Mayweed",
+        "color": "#fafa37",
+        "attributes": []
+    },
+    {
+        "name": "Charlock",
+        "color": "#5986b3",
+        "attributes": []
+    },
+    {
+        "name": "Black bindweed",
+        "color": "#8c78f0",
+        "attributes": []
+    }
+]
