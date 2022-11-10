@@ -3,24 +3,37 @@ import tarfile
 import argparse
 import glob
 import os
+import sys
+from os import path
 
-def main(weed_file, root_folder, base_url):    
+def progressBar(current, total, width=80):
+  progress_message = "File progress: %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+  sys.stdout.write("\r" + progress_message)
+  sys.stdout.flush()
+
+def main(weed_file, root_folder, base_url):
     os.makedirs(root_folder + '/tractor-33-zipped', exist_ok = True)
 
-    download_list = None    
-    with open(weed_file) as downloads_file:            
+    download_list = None
+    with open(weed_file) as downloads_file:
             download_list = downloads_file.readlines()
 
     for file in download_list:
         file_fixed = file.split('\n')[0]
-        wget.download(base_url + '/' + file_fixed, out=root_folder + '/tractor-33-zipped/')
+        print("")
+        if (path.exists(root_folder + '/tractor-33-zipped/' + file_fixed)):
+            print('Skipping ' + base_url + '/' + file_fixed)
+        else:
+            print('Downloading ' + base_url + '/' + file_fixed)
+            wget.download(base_url + '/' + file_fixed, out=root_folder + '/tractor-33-zipped/', bar=progressBar)
 
-    #extract each folder    
+    #extract each folder
     tar_files = glob.glob(root_folder + '/tractor-33-zipped' + '/**/*.tar.gz', recursive=True)
     for file in tar_files:
-        f = tarfile.open(name=file, mode='r:gz')  
-        print('extracting ' + file )      
-        f.extractall(path=root_folder + '/')
+#        f = tarfile.open(name=file, mode='r:gz')
+        print("")
+        print('Extracting ' + file )
+#        f.extractall(path=root_folder + '/')
 
 
 
