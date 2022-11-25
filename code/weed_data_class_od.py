@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 import pandas as pd
 
 class WeedDataOD(Dataset):
-    def __init__(self, pandas_file, device, transform=None, augmentation=None, class_map=None):
+    def __init__(self, pandas_file, device, transform=None, augmentation=None, class_map=None, fake_dataset_len=0):
         self.df = pd.read_pickle(pandas_file)
         self.device = device
         self.transform = transform
@@ -15,6 +15,7 @@ class WeedDataOD(Dataset):
         #self.side_crop = 0.25
         #self.use_crop = True
         self.augmentatation = augmentation
+        self.fake_dataset_len = fake_dataset_len
 
 
     def crop_img(self, entry, img, height_crop, side_crop):
@@ -81,7 +82,10 @@ class WeedDataOD(Dataset):
 
 
     def __len__(self):
-        return len(self.df.index)        
+        if(self.fake_dataset_len > 0):
+            return self.fake_dataset_len
+        else:    
+            return len(self.df.index)        
 
     
     def load_img(self, idx):

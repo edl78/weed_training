@@ -1,0 +1,17 @@
+version: '3.4'
+
+services:
+  weed_training:
+    env_file:
+      - env.list
+    restart: unless-stopped
+    image: training:v1
+    container_name: weed_training    
+    volumes:
+      - ./train:/train
+      - ./code:/code
+      - ./vision:/code/vision
+      - ${KNOWN_HOSTS_PATH}:/home/dopamine/.ssh/known_hosts
+      - ${WEED_DATA_PATH}:/weed_data    
+    network_mode: "host"
+    entrypoint: ["python3", "/code/auto_annotate.py", "--upload_pkl", "True", "-p", $TRAINING_PICKLE_PATH]

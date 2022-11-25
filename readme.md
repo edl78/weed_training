@@ -9,13 +9,19 @@
 ![](doc_img/architecture.png)
 
 ## T-SNE based train/val splits
-- use the analytics functionality to get information on the clusters produced by t-sne to have a fair representation of features in both train and val datasets
+- The idea here is to use the analytics functionality to get information on the clusters produced by t-sne to have a fair representation of features in both train and val datasets, not implemented. Can be viewed for information on feature distribution.
 
 
 ## How to run
-- Shell scripts for building and running the container. These are build_training.sh and run_training.sh
-- After starting the contrainer, go to /code and run `python3 torch_model_runner.py -f path_to_json_settings_file` defaults to /code/settings_file.json 
+- Shell scripts for building: `sh build_training.sh`
+- To download the images run full_hd (recommended and supported) or 4k versions of `docker-compose-download-full-hd.yml`
+- Upload data to cvat with: `docker-compose-upload-train-data-cvat.yml` and `docker-compose-upload-val_data-cvat.yml`
+- Set all tasks in cvat to status complete by running: `docker-compose-set-all-cvat-tasks-to-complete.yml` this is needed since the weed_annotations dashboard collects all annotations from tasks that are set in status complete and inserts them into MongoDB.
+- Run with docker-compose: `docker-compose up -d` run without -d for console output.
+- run_training.sh can be used to run interactive. Fill in missing usernames and passwords.
+- In interactive mode, after starting the contrainer, go to /code and run `python3 torch_model_runner.py -f path_to_json_settings_file -t path_to_train_pkl_file -v path_to_val_pkl_file`
 - The trained networks can then be found in the mapped folder train or /train in the container. A file with optimal training parameters is also located together with the network.
+- Bayeisan hyper parameter search is implemented with the Sherpa library. Use this by setting "run_hpo": 1 in code/settings_file_gt_train_val.json under respective network. The parameter "fake_dataset_len" is also used as the optimization tries to overfit as agressively as possible on this small dataset. This overrides the dataset size in the dataloader during training.
 - Watch the hyper parameter tuning on localhost:8880 and the training and validation losses for all runs on localhost:6006 after pointing your local tensorboard to code/runs/name_of_the_run
 - The json configuration file looks like this: 
 ```json
@@ -64,6 +70,7 @@
 
 ## Metrics
 - With the container active and the terminal ready and a model trained change dir to /code and run: `python3 test_model.py`
+
 
 
 ## Auto annotation

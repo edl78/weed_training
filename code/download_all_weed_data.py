@@ -30,10 +30,10 @@ def main(weed_file, root_folder, base_url):
     #extract each folder
     tar_files = glob.glob(root_folder + '/tractor-33-zipped' + '/**/*.tar.gz', recursive=True)
     for file in tar_files:
-#        f = tarfile.open(name=file, mode='r:gz')
+        f = tarfile.open(name=file, mode='r:gz')
         print("")
         print('Extracting ' + file )
-#        f.extractall(path=root_folder + '/')
+        f.extractall(path=root_folder + '/')
 
 
 

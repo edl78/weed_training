@@ -39,6 +39,7 @@
     "resnet101": {
         "run_hpo": 1
     },
+    "fake_dataset_len": 4,
     "max_train_epochs": 10000,
     "max_plateau_count": 1000,
     "search_epochs": 30,

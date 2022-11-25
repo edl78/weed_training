@@ -35,7 +35,7 @@ class AutoAnnotations():
         self.headers = None
         self.tasks = dict()
         self.login()
-        self.weeds = Weeds(port=27018)
+        self.weeds = Weeds(port=int(os.environ['MONGODB_PORT']))
         self.class_map = self.weeds.get_object_classes_for_annotations_with_task_filter(filter='FieldData')
 
 
@@ -74,7 +74,7 @@ class AutoAnnotations():
         body = {'name': task_name, 'labels': task_labels}
         r = requests.post(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)
         if(r.status_code == 201):
-            print('task creation started')
+            print('task creation started for task: ' + task_name)
             #ugly static wait since we cant query on the id before it exists
             time.sleep(5)
             #update internal task list
@@ -431,7 +431,7 @@ class AutoAnnotations():
             #get meta info on frame name to number conversion
             frame_num = self.get_meta_index_of_path(meta=meta, img_path=annotation['img_path'])
             if(frame_num < 0):
-                print('could not find img path in meta, failing task' + task_name +' on frame ' \
+                print('could not find img path in meta, failing task ' + task_name +' on frame ' \
                     ' ' + annotation['img_path'])
                 continue
 
@@ -482,7 +482,7 @@ class AutoAnnotations():
                 #get meta info on frame name to number conversion
                 frame_num = self.get_meta_index_of_path(meta=meta, img_path=annotation['@name'])
                 if(frame_num < 0):
-                    print('could not find img path in meta, failing task' + task_name +' on frame ' \
+                    print('could not find img path in meta, failing task ' + task_name +' on frame ' \
                         ' ' + annotation['img_path'])
                     continue
 
@@ -546,7 +546,7 @@ class AutoAnnotations():
                 #get meta info on frame name to number conversion
                 frame_num = self.get_meta_index_of_path(meta=meta, img_path=annotation['img_path'].split('/weed_data/')[-1])
                 if(frame_num < 0):
-                    print('could not find img path in meta, failing task' + task_name +' on frame ' \
+                    print('could not find img path in meta, failing task ' + task_name +' on frame ' \
                         ' ' + annotation['img_path'])
                     continue
 
@@ -680,7 +680,7 @@ def generate_auto_annotations(pickle_file='/train/pickled_weed/pd_val.pkl', thre
     model.to(device)        
     model.eval()
     
-    weeds = Weeds(port=27018)
+    weeds = Weeds(port=int(os.environ['MONGODB_PORT']))
     #verifiy that order of this array do not change! Must save a class_map json with the model, db can evolve!
     class_map = weeds.get_object_classes_for_annotations_with_task_filter(filter='FieldData')
     #for testing without mongodb connection
@@ -790,10 +790,20 @@ def create_dataframe_with_task_as_keys(pickle_file=None, class_map=None):
     
     return df
 
+
+def set_all_cvat_tasks_to_complete():    
+    uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
+                                    cvat_base_url=os.environ['CVAT_BASE_URL'])
+    uploader.get_tasks()
+    
+    for task in uploader.tasks.keys():
+        uploader.set_task_to_status_complete(task_name=task, job_status='completed')
+    
+
 def do_whatever():
     #placeholder for temporary stuff 
-    uploader = AutoAnnotations(username=os.environ['CVAT_CDIO_USERNAME'], password=os.environ['CVAT_CDIO_PASSWORD'], 
-                                    cvat_base_url='https://cvat.2020.cdio.linkoping-ri.se/api/v1/')
+    uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
+                                    cvat_base_url=os.environ['CVAT_BASE_URL'])
     uploader.get_tasks()
     #implement temp function to set a list of tasks in a state
     settings = None        
@@ -802,11 +812,11 @@ def do_whatever():
     
     for task in settings['first_year_tasks']:
         uploader.set_task_to_status_complete(task_name=task, job_status='completed')
-
+    
 
 def update_gt_with_auto_annotations(gt_match=None, auto_annotation_date=None):
-    uploader = AutoAnnotations(username=os.environ['CVAT_CDIO_USERNAME'], password=os.environ['CVAT_CDIO_PASSWORD'], 
-                                    cvat_base_url='https://cvat.2020.cdio.linkoping-ri.se/api/v1/')
+    uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
+                                    cvat_base_url=os.environ['CVAT_BASE_URL'])
     uploader.get_tasks()    
     uploader.update_annotations(task_match_pattern=gt_match, auto_annotation_match_pattern=auto_annotation_date)
     
@@ -827,8 +837,8 @@ def validate_img_paths(dataframe=None, folder=None):
 
 
 def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl'):
-    uploader = AutoAnnotations(username=os.environ['CVAT_CDIO_USERNAME'], password=os.environ['CVAT_CDIO_PASSWORD'], 
-                                    cvat_base_url='https://cvat.2020.cdio.linkoping-ri.se/api/v1/')
+    uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
+                                    cvat_base_url=os.environ['CVAT_BASE_URL'])
 
     class_map = uploader.get_class_map()
     gt_pkl = pandas.read_pickle(pickle_file)
@@ -839,8 +849,7 @@ def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl'):
         uploader.get_tasks()
         tasks = uploader.get_internal_task_list()
         if(cvat_task_name in tasks.keys()):
-            print('task already in cvat, check upload list and cvat')
-            
+            print('task already in cvat, check upload list and cvat')          
         else:
             uploader.create_task(task_name=cvat_task_name)
             uploader.get_tasks()
@@ -849,8 +858,8 @@ def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl'):
 
 
 def upload_annotations_xml(folder=None):        
-    uploader = AutoAnnotations(username=os.environ['CVAT_CDIO_USERNAME'], password=os.environ['CVAT_CDIO_PASSWORD'], 
-                                cvat_base_url='https://cvat.2020.cdio.linkoping-ri.se/api/v1/')
+    uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'],
+                                cvat_base_url=os.environ['CVAT_BASE_URL'])
 
     xml_files = glob.glob(folder + "/*.xml")
     uploader.get_tasks()
@@ -881,8 +890,8 @@ def upload_annotations_xml(folder=None):
 
 
 def upload_from_folder(folder=None, task_name=None):
-        uploader = AutoAnnotations(username=os.environ['CVAT_CDIO_USERNAME'], password=os.environ['CVAT_CDIO_PASSWORD'], 
-                                    cvat_base_url='https://cvat.2020.cdio.linkoping-ri.se/api/v1/')
+        uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
+                                    cvat_base_url=os.environ['CVAT_BASE_URL'])
 
         #break up task_creation and uploading of data and annotions per sub task_name
         #since it is problematic to upload all in one go.
@@ -934,6 +943,7 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--match_pattern_gt', help='task_name match gt to auto annotation', required=False)
     parser.add_argument('-d', '--auto_annotation_folder', help='date based folder name of auto annotation', required=False)
     parser.add_argument('-w', '--whatever', type=bool, default=False, help='flag to enable an entrance to any function you like', required=False)
+    parser.add_argument('-s', '--set_complete', type=bool, default=False, help='set all tasks in cvat to complete status', required=False)
     parser.add_argument('-x', '--xml_upload', type=str, help='upload xml annotations to CVAT from provided folder', required=False)    
     parser.add_argument('-c', '--crop_images', type=bool, help='flag to initiate images cropping', required=False)
     parser.add_argument('--ext', type=str, default='png', help='image file extension', required=False)
@@ -955,6 +965,8 @@ if __name__ == "__main__":
         upload_ground_truths(pickle_file=args.pickle_file)
     elif(args.whatever):
         do_whatever()
+    elif(args.set_complete):
+        set_all_cvat_tasks_to_complete()
     elif(args.xml_upload):
         upload_annotations_xml(folder=args.xml_upload)
     elif(args.rerun_task):

@@ -16,9 +16,9 @@ from numpyencoder import NumpyEncoder
 from weed_data_class_od import WeedDataOD
 
 
-class ModelTrainer():
+class ModelTrainer_overfit():
     def __init__(self, dataset_path=None, dataset_test_path=None,
-                    settings=None, variant=None, class_map=None):
+                    settings=None, variant=None, class_map=None, fake_dataset_len=2):
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.settings = settings
         self.variant = variant
@@ -41,8 +41,8 @@ class ModelTrainer():
                                     std=[0.229, 0.224, 0.225])])
         
         #pickle file names by convention, change to parameter later
-        self.dataset = WeedDataOD(pandas_file=dataset_path, device=self.device, transform=self.transform, class_map=self.class_map)
-        self.dataset_test = WeedDataOD(pandas_file=dataset_test_path, device=self.device, transform=self.transform, class_map=self.class_map)
+        self.dataset = WeedDataOD(pandas_file=dataset_path, device=self.device, transform=self.transform, class_map=self.class_map, fake_dataset_len=fake_dataset_len)
+        self.dataset_test = WeedDataOD(pandas_file=dataset_test_path, device=self.device, transform=self.transform, class_map=self.class_map, fake_dataset_len=fake_dataset_len)
 
         # define training and validation data loaders
         self.data_loader = torch.utils.data.DataLoader(

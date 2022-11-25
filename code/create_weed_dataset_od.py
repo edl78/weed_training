@@ -15,7 +15,7 @@ class PickledWeedOD():
         self.dataset_dir = dataset_dir
         os.makedirs(name=self.save_dir, mode=0o755, exist_ok=True)
         self.class_map = None
-        self.weeds = Weeds(port=mongo_port)
+        self.weeds = Weeds(port=int(mongo_port))
         self.class_map = self.weeds.get_object_classes_for_all_annotations()
         self.height_crop = 0.5
         self.side_crop = 0.25
@@ -103,8 +103,8 @@ class PickledWeedOD():
             val_frames = np.load('/train/pickled_weed/val_frames_full_hd.npy', allow_pickle=True)
             train_frames = np.load('/train/pickled_weed/train_frames_full_hd.npy', allow_pickle=True)
         else:
-            val_frames = np.load('/train/pickled_weed/val_frames.npy', allow_pickle=True)
-            train_frames = np.load('/train/pickled_weed/train_frames.npy', allow_pickle=True)        
+            val_frames = np.load('/train/pickled_weed/val_frames_4k.npy', allow_pickle=True)
+            train_frames = np.load('/train/pickled_weed/train_frames_4k.npy', allow_pickle=True)        
 
         #sanity check
         problems = list()
@@ -209,9 +209,12 @@ class PickledWeedOD():
                             print(im_path + ' not in val_frames')
                         if(len(dataEntry['bboxes']) > 0):
                             df_train = df_train.append(dataEntry, ignore_index=True)
-            
-        df_val.to_pickle(self.save_dir + '/pd_val.pkl')
-        df_train.to_pickle(self.save_dir + '/pd_train.pkl')
+        if(full_hd):
+            df_val.to_pickle(self.save_dir + '/pd_val_full_hd.pkl')
+            df_train.to_pickle(self.save_dir + '/pd_train_full_hd.pkl')
+        else:    
+            df_val.to_pickle(self.save_dir + '/pd_val_4k.pkl')
+            df_train.to_pickle(self.save_dir + '/pd_train_4k.pkl')
 
 
     def make_pandas_dataset(self, pickle_name=None):                       

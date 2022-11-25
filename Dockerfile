@@ -20,6 +20,7 @@ RUN pip3 install --upgrade pip && pip3 install mapcalc
 RUN pip3 install scp
 RUN pip3 install shapely
 RUN pip3 install xmltodict
+RUN pip3 install wget
 
 #WORKDIR '/code'
 #ENTRYPOINT ["python3", "torch_model_runner.py"]
