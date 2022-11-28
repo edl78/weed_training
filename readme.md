@@ -1,24 +1,23 @@
 # Training repo for obdb
 
 ## Architecture
-- Depends on having a mongodb instance with all annotation data collected from CVAT.
+- Depends on having a mongodb instance with all annotation data collected from CVAT, meaning weed_annotations must first be started.
 - Bayesisan optimization via Sherpa for hyperparameters.
-- Will output a number of networks ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152'] or any combination of pytorch available networks.
-- Highly adaptable, adjust the dataset class with you own data
+- Can output a number of networks ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152'] or any combination of pytorch available networks. Configured to train a resnet18 for the weed detection task.
+
 
 ![](doc_img/architecture.png)
 
-## T-SNE based train/val splits
-- The idea here is to use the analytics functionality to get information on the clusters produced by t-sne to have a fair representation of features in both train and val datasets, not implemented. Can be viewed for information on feature distribution.
 
 
 ## How to run
 - Shell scripts for building: `sh build_training.sh`
 - To download the images run full_hd (recommended and supported) or 4k versions of `docker-compose-download-full-hd.yml`
-- Upload data to cvat with: `docker-compose-upload-train-data-cvat.yml` and `docker-compose-upload-val_data-cvat.yml`
+- Upload data to cvat once the cvat service is up (find docs in obdb_docs repo) with: `docker-compose-upload-train-data-cvat.yml` and `docker-compose-upload-val_data-cvat.yml`
 - Set all tasks in cvat to status complete by running: `docker-compose-set-all-cvat-tasks-to-complete.yml` this is needed since the weed_annotations dashboard collects all annotations from tasks that are set in status complete and inserts them into MongoDB.
+- Fill usernames and passwords in the env files .env and env.list, .env is used by docker-compose and env.list is sent as environment variables into the container.
 - Run with docker-compose: `docker-compose up -d` run without -d for console output.
-- run_training.sh can be used to run interactive. Fill in missing usernames and passwords.
+- run_training.sh can be used to run interactive if so desired. Fill in missing usernames and passwords in the shell script.
 - In interactive mode, after starting the contrainer, go to /code and run `python3 torch_model_runner.py -f path_to_json_settings_file -t path_to_train_pkl_file -v path_to_val_pkl_file`
 - The trained networks can then be found in the mapped folder train or /train in the container. A file with optimal training parameters is also located together with the network.
 - Bayeisan hyper parameter search is implemented with the Sherpa library. Use this by setting "run_hpo": 1 in code/settings_file_gt_train_val.json under respective network. The parameter "fake_dataset_len" is also used as the optimization tries to overfit as agressively as possible on this small dataset. This overrides the dataset size in the dataloader during training.
@@ -80,8 +79,6 @@
 - To upload annotations in xml format from a folder run: python3 /code/auto_annotate.py -x "/train/xml_annotations" as example path.
 
 
-## Left to sort out
-- how to do intelligent splits on train/validation data based on feature space mapping from t-sne. This is available on the rest-api on the analytics container. For now every 10th frame is used for validation. A train/val split is given where the validation dataset has been verified to has as few missing annotations as possible.
 
 
 
