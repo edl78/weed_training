@@ -3,6 +3,7 @@ import json
 from weeds import Weeds
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 class DetectionMetrics():
     def __init__(self, class_map=None, confidence_thresholds=[0.7], iou_thresholds=[0.5]):
@@ -152,15 +153,10 @@ class DetectionMetrics():
         with open(metrics_json_path) as json_file:            
                 metrics = json.load(json_file)
         
+        os.makedirs(figure_save_folder, exist_ok=True)
+
         #For every class, make graphs (precision, recall, f1) of each confidence threshold with varying iou threshold
-        #print in one class graph
-
-        #get this from weeds() helperclass instead: (good for now)
-        #class_map = ['Black bindweed', 'Cleavers', 'Common furnitory', 'Creeping thistle', 'Curled dock', 'Dandelion', 'Fat hen', 'Rape', 'Scentless Mayweed', 'Unknown weed']
-        #weeds = Weeds(port=27018)
-        #class_map = weeds.get_object_classes_for_annotations_with_task_filter(class_map_match_str)
-        #print('use class map: ' + str(class_map))
-
+        #print in one class graph        
         
         for object_class in self.class_map:
             precision = metrics[object_class]['precision']

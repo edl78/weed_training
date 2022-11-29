@@ -1,3 +1,4 @@
+import argparse
 import torch
 import numpy as np
 from PIL import Image, ImageDraw
@@ -81,137 +82,143 @@ def validate_img_paths(pickle_file=None):
                 print(im_path +  ' cropped and saved in auto annotation path')
 
 
-def automatic_per_class_metric_test(pickle_file=None, save_imgs=False, confidence_threshold=0.7, iou_threshold=0.5):
+def automatic_per_class_metric_test(model_path=None, pickle_file=None, save_imgs=False, 
+                                    confidence_threshold=0.7, iou_threshold=0.5, class_map=None,
+                                    confidence_threshold_save_img=0.7):
     SAVE_IMG = save_imgs
     if(SAVE_IMG):
         test_img_path = '/train/resnet18/test_imgs/final/'
         os.makedirs(name=test_img_path, mode=0o755, exist_ok=True)
 
-    #variants = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']
-    variants = ['resnet18']
-    for variant in variants:
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        
-        data_transform = transforms.Compose([transforms.Normalize(
-                                                mean=[0.485, 0.456, 0.406],
-                                                std=[0.229, 0.224, 0.225])])               
+    
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    
+    data_transform = transforms.Compose([transforms.Normalize(
+                                            mean=[0.485, 0.456, 0.406],
+                                            std=[0.229, 0.224, 0.225])])               
 
-        model = torch.load('/train/' + variant + '_model.pth')        
-        model.to(device)        
-        model.eval()
+    model = torch.load(model_path)    
+    model.to(device)
+    model.eval()
+    
+    dataset_test = WeedDataOD(pandas_file=pickle_file, device=device, transform=data_transform, class_map=class_map)
+    data_loader_test = torch.utils.data.DataLoader(
+        dataset_test, batch_size=2, shuffle=False, num_workers=1, collate_fn=my_collate, drop_last=True)
 
-        weeds = Weeds(port=27018)
-        #verifiy that order of this array do not change
-        #class_map = weeds.get_object_classes_for_all_annotations()
-        #for testing without mongodb connection
-        #class_map = ['Black bindweed', 'Cleavers', 'Common furnitory', 'Creeping thistle', 'Curled dock', 'Dandelion', 'Fat hen', 'Rape', 'Scentless Mayweed', 'Unknown weed']
-        class_map = weeds.get_object_classes_for_annotations_with_task_filter('FieldData_20190604')
-        print(class_map)        
-        dataset_test = WeedDataOD(pandas_file=pickle_file, device=device, transform=data_transform, class_map=class_map)
-        data_loader_test = torch.utils.data.DataLoader(
-            dataset_test, batch_size=2, shuffle=False, num_workers=1, collate_fn=my_collate, drop_last=True)
+    my_metrics = DetectionMetrics(class_map, confidence_thresholds=confidence_threshold, iou_thresholds=iou_threshold)
+    
+    for i, data in enumerate(data_loader_test, 0): 
+        print(i)             
+        inputs, targets, entry = data
+        
+        inputs_gpu = []
+        for im in inputs:
+            inputs_gpu.append(im.to(device))
 
-        validate_img_paths(pickle_file=pickle_file)
+        with torch.no_grad():
+            preds = model(inputs_gpu)
         
-        my_metrics = DetectionMetrics(class_map, confidence_thresholds=confidence_threshold, iou_thresholds=iou_threshold)
-        
-        for i, data in enumerate(data_loader_test, 0): 
-            print(i)             
-            inputs, targets, entry = data
+        preds_boxes_np = []
+        preds_labels_np = []
+        preds_scores_np = []
+        for pred in preds:
+            preds_boxes_np.append(pred['boxes'].detach().cpu().numpy())
+            preds_labels_np.append(pred['labels'].detach().cpu().numpy())
+            preds_scores_np.append(pred['scores'].detach().cpu().numpy())
+
+        targets_boxes_np = []
+        targets_labels_np = []
+        for target in targets:   
+            targets_boxes_np.append(target['boxes'].detach().cpu().numpy())
+            targets_labels_np.append(target['labels'].detach().cpu().numpy())
+
+        #do not use this with array of thresholds, creates a lot of data
+        if(SAVE_IMG):
+            for z in range(len(entry)):
+                img_path = entry[z]['img_path']
+                img = dataset_test.load_img_with_path(i, img_path)
+                draw = ImageDraw.Draw(img)
             
-            #targets = trim_targets(targets)    
-            print(entry)
-            inputs_gpu = []
-            for im in inputs:
-                inputs_gpu.append(im.to(device))
+                #draw boxes        
+                for j in range(len(preds_labels_np[z])):
+                    print('score: ' + str(preds_scores_np[z][j]))
+                    if(preds_scores_np[z][j] >= confidence_threshold_save_img): 
+                        box = preds_boxes_np[z][j]
+                        shape = [(box[0], box[1]), (box[2], box[3])]
+                        draw.rectangle(shape, outline='red', width=3)
 
-            with torch.no_grad():
-                preds = model(inputs_gpu)
+                for k in range(len(targets_labels_np[z])):
+                    box = targets_boxes_np[z][k]
+                    if(len(box) > 0):
+                        shape = [(box[0], box[1]), (box[2], box[3])]
+                        draw.rectangle(shape, outline='blue', width=3)
+
+                img.save(test_img_path + img_path.replace('/', '_'))
+                        
+
+        #batch
+        for r in range(len(entry)):                
+            gt = {
+                'boxes': targets_boxes_np[r],
+                'labels': targets_labels_np[r]
+            }
             
-            preds_boxes_np = []
-            preds_labels_np = []
-            preds_scores_np = []
-            for pred in preds:
-                #print(pred['scores'].detach().cpu().numpy())
-                preds_boxes_np.append(pred['boxes'].detach().cpu().numpy())
-                preds_labels_np.append(pred['labels'].detach().cpu().numpy())
-                preds_scores_np.append(pred['scores'].detach().cpu().numpy())
-
-            targets_boxes_np = []
-            targets_labels_np = []
-            for target in targets:   
-                targets_boxes_np.append(target['boxes'].detach().cpu().numpy())
-                targets_labels_np.append(target['labels'].detach().cpu().numpy())
-
-            #do not use this with array of thresholds
-            if(SAVE_IMG):
-                for z in range(len(entry)):
-                    img_path = entry[z]['img_path']
-                    img = dataset_test.load_img_with_path(i, img_path)
-                    draw = ImageDraw.Draw(img)
-                
-                    #draw boxes        
-                    for j in range(len(preds_labels_np[z])):
-                        print('score: ' + str(preds_scores_np[z][j]))
-                        if(preds_scores_np[z][j] >= confidence_threshold): 
-                            box = preds_boxes_np[z][j]
-                            shape = [(box[0], box[1]), (box[2], box[3])]
-                            draw.rectangle(shape, outline='red', width=3)
-
-                    for k in range(len(targets_labels_np[z])):
-                        box = targets_boxes_np[z][k]
-                        if(len(box) > 0):
-                            shape = [(box[0], box[1]), (box[2], box[3])]
-                            draw.rectangle(shape, outline='blue', width=3)
-
-                    img.save(test_img_path + img_path.replace('/', '_'))
+            #filter inside
+            result_detection_metrics = {
+                'boxes': preds_boxes_np[r],
+                'labels': preds_labels_np[r],
+                'scores': preds_scores_np[r]
+            }
                             
-
-            #batch
-            for r in range(len(entry)):                
-                gt = {
-                    'boxes': targets_boxes_np[r],
-                    'labels': targets_labels_np[r]
-                }
-                
-                #filter inside
-                result_detection_metrics = {
-                    'boxes': preds_boxes_np[r],
-                    'labels': preds_labels_np[r],
-                    'scores': preds_scores_np[r]
-                }
-                                
-                if(len(gt['boxes'][0]) > 0):
-                    my_metrics.update(predictions=result_detection_metrics, gt=gt)
-                                                            
-        my_metrics.calc_metrics(metrics_save_path=metrics_save_path)    
-
+            if(len(gt['boxes'][0]) > 0):
+                my_metrics.update(predictions=result_detection_metrics, gt=gt)
+                                                        
+    my_metrics.calc_metrics(metrics_save_path=metrics_save_path)    
 
 
 
 
 if __name__ == "__main__":
-
-    confidence_range = [0.5, 0.6, 0.7, 0.8, 0.9]
-    iou_range = [0.5, 0.6, 0.7, 0.8, 0.9]
-    #confidence_range = [0.7]
-    #iou_range = [0.5]
+    parser = argparse.ArgumentParser(description='Test the model and get metrics')
+    parser.add_argument('-f', '--settings_file', type=str, default='/code/settings_file_gt_train_val.json', help='settings file for all settings regarding the networks to train', required=False)
+    parser.add_argument('-m', '--model_path', type=str, default='/train/resnet18_model.pth', help='Pytorch model file path', required=False)
+    parser.add_argument('-p', '--pickle_path', type=str, default='/train/pickled_weed/pd_val_full_hd.pkl', help='validation pickle file path', required=False)
+    parser.add_argument('-s', '--save_path', type=str, default='/train', help='path to save metrics json file and graphs', required=False)
+    parser.add_argument('-l', '--limit_metrics', type=bool, default=True, help='use limited metrics, if False use full version', required=False)
+    parser.add_argument('-i', '--save_images', type=bool, default=False, help='save images for inspection, gt and pred boxes overlayed', required=False)
     
-    metrics_save_path = '/train/class_metrics.json'
-    #metrics_save_path = '/train/class_metrics_first_year.json'
+    args = parser.parse_args()
 
-    pickle_file = '/train/pickled_weed/pd_val.pkl'
-    #pickle_file = '/train/pickled_weed/pd_val_first_year.pkl'
-    automatic_per_class_metric_test(pickle_file = pickle_file, save_imgs=False, 
-                            confidence_threshold=confidence_range,
-                           iou_threshold=iou_range)
-                      
-    weeds = Weeds(port=27018)
-    #class_map = weeds.get_object_classes_for_annotations_with_task_filter('FieldData_20190604')
-    class_map = weeds.get_object_classes_for_annotations_with_task_filter('gt_val')
+    settings = None
+    with open(args.settings_file) as json_file:            
+            settings = json.load(json_file)
+
+    #argparse bool hack
+    limit_metrics = args.limit_metrics == 'True'
+    save_images = args.save_images == 'True'
+
+    if(limit_metrics):
+        metrics_confidence_range = settings['metrics_confidence_range_small']
+        metrics_iou_range = settings ['metrics_iou_range_small']
+    else:
+        metrics_confidence_range = settings['metrics_confidence_range']
+        metrics_iou_range = settings ['metrics_iou_range']
     
+    metrics_save_path = args.save_path + '/class_metrics.json'        
+    class_map = settings["default_class_map"]
+    try:
+        weeds = Weeds(port=int(os.environ["MONGODB_PORT"]))    
+        class_map = weeds.get_object_classes_for_annotations_with_task_filter('gt_val')
+    except:
+        print('Error, no connection with MongoDB, this is ok if fast track mode is chosen.')
+
+    automatic_per_class_metric_test(model_path=args.model_path, pickle_file = args.pickle_path, save_imgs=save_images, 
+                                    confidence_threshold=metrics_confidence_range,
+                                    iou_threshold=metrics_iou_range, class_map=class_map,
+                                    confidence_threshold_save_img=settings['confidence_threshold_save_img'])
+    
+
     #do graphs as separate step here
-    metrics = DetectionMetrics(class_map=class_map, confidence_thresholds=confidence_range, iou_thresholds=iou_range)
-    #metrics.make_graphs(metrics_json_path=metrics_save_path, figure_save_folder='/train/result_figures_first_year/')
-    metrics.make_graphs(metrics_json_path=metrics_save_path, figure_save_folder='/train/result_figures/')
+    metrics = DetectionMetrics(class_map=class_map, confidence_thresholds=metrics_confidence_range, iou_thresholds=metrics_iou_range)    
+    metrics.make_graphs(metrics_json_path=metrics_save_path, figure_save_folder=args.save_path + '/result_figures')
         

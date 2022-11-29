@@ -21,6 +21,9 @@ def main():
     with open(args.settings_file) as json_file:            
             settings = json.load(json_file)
 
+    #argparse hack
+    make_new_dataset = args.make_new_dataset == 'True'
+
     #setup pandas dataset    
     save_dir = settings['save_dir']
     class_map = settings['default_class_map']
@@ -30,7 +33,7 @@ def main():
                                     dataset_dir=settings['dataset_dir'],
                                     mongo_port=int(os.environ['MONGODB_PORT']))
         
-        if(args.make_new_dataset):                
+        if(make_new_dataset):                
             pickledWeed.make_pandas_dataset_with_pre_split(full_hd=settings['full_hd'])
             print('done, pickled pandas frame found at: ' + save_dir)    
         
