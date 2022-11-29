@@ -23,24 +23,31 @@ def main():
 
     #setup pandas dataset    
     save_dir = settings['save_dir']
-    pickledWeed = PickledWeedOD(task_name_list=settings['annotations_list_gt'],
-                                save_dir=save_dir,
-                                dataset_dir=settings['dataset_dir'],
-                                mongo_port=int(os.environ['MONGODB_PORT']))
+    class_map = settings['default_class_map']
+    try:
+        pickledWeed = PickledWeedOD(task_name_list=settings['annotations_list_gt'],
+                                    save_dir=save_dir,
+                                    dataset_dir=settings['dataset_dir'],
+                                    mongo_port=int(os.environ['MONGODB_PORT']))
+        
+        if(args.make_new_dataset):                
+            pickledWeed.make_pandas_dataset_with_pre_split(full_hd=settings['full_hd'])
+            print('done, pickled pandas frame found at: ' + save_dir)    
+        
+        #pickledWeed.get_local_files()
+        class_map = pickledWeed.get_class_map(filter='gt_')    
+        print(class_map)
     
-    if(args.make_new_dataset):        
-        pickledWeed.make_pandas_dataset_with_pre_split(full_hd=settings['full_hd'])
-        print('done, pickled pandas frame found at: ' + save_dir)    
     
-    #pickledWeed.get_local_files()
-    class_map = pickledWeed.get_class_map(filter='gt_')    
-    print(class_map)
+    except:
+        print('error setting up MongoDB connection, this is ok if fasttrack to training is choosen.')
+        
+    
 
     dataset = args.dataset_training
     dataset_test = args.dataset_validation
 
     for variant in settings['variants']:
-        trainer = None
         if(settings[variant]['run_hpo'] == True):
             trainer = ModelTrainer_overfit(dataset_path=dataset, 
                                 dataset_test_path=dataset_test,
@@ -49,17 +56,19 @@ def main():
                                 fake_dataset_len=settings['fake_dataset_len'])
             
             trainer.sherpa_hpo()
-        
+            #use newly created settings file after HPO
+            trainer.train_model(settings_file='/train/' + variant + '_settings.json')
+
         else:
             trainer = ModelTrainer(dataset_path=dataset, 
                                     dataset_test_path=dataset_test,
                                     settings=settings, variant=variant,
                                     class_map=class_map)
         
-        #point out newly created settings file for use during first run
-        #after parameter search
-        trainer.train_model(settings_file='/train/' + variant + '_settings.json')
-        #trainer.train_model()
+            if(settings[variant]["use_settings_file"]):
+                trainer.train_model(settings_file='/train/' + variant + '_settings.json')
+            else:
+                trainer.train_model()
 
 if __name__ == "__main__":
     main()

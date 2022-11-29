@@ -5,6 +5,7 @@
     ],
     "retina_net": {
         "run_hpo": 1,
+        "use_settings_file": 0,
         "optimal_hpo_settings": {
             "gamma": false,
             "lr": false,
@@ -15,6 +16,7 @@
     },
     "resnet18": {
         "run_hpo": 0,
+        "use_settings_file": 1,
         "optimal_hpo_settings": {
             "gamma": 0.9,
             "lr": 0.01,
@@ -24,10 +26,12 @@
         }
     },
     "resnet34": {
-        "run_hpo": 1
+        "run_hpo": 1,
+        "use_settings_file": 0
     },
     "resnet50": {
         "run_hpo": 1,
+        "use_settings_file": 0,
         "optimal_hpo_settings": {
             "gamma": 0.01,
             "lr": 0.000199607945,
@@ -37,7 +41,8 @@
         }
     },
     "resnet101": {
-        "run_hpo": 1
+        "run_hpo": 1,
+        "use_settings_file": 0
     },
     "fake_dataset_len": 4,
     "max_train_epochs": 10000,
@@ -253,5 +258,16 @@
             0.01,
             0.9
         ]
-    }
+    },
+    "default_class_map": [
+        "Black bindweed", 
+        "Cleavers", 
+        "Common furnitory", 
+        "Creeping thistle", 
+        "Curled dock", 
+        "Dandelion", 
+        "Fat hen", 
+        "Rape", 
+        "Scentless Mayweed", 
+        "Unknown weed"]
 }
