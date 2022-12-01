@@ -80,15 +80,16 @@
 
 ## Metrics
 - Run this with: `docker-compose -f docker-compose-metrics.yml up`
-- Output in train/class_metrics.json file which is used to produce graphs default put under train/result_figures/ with a number of svg files.
+- Output in train/class_metrics.json file which is used to produce graphs default put under train/result_figures/ with a number of svg files. Replace up with down to remove the container when done in the docker-compose command.
 
 
 
 ## Auto annotation
-- Can be run like this: python3 auto_annotate.py -p /train/pickled_weed/pd_val.pkl -v resnet18 -t 0.5 for automatic annotation and uploading to cvat. For uploading of ground truth run python3 auto_annotate.py -p /train/pickled_weed/pd_val.pkl -g /auto_annotation/resnet18/2021_12_16_12_57_57. Rerun auto annotation on specific task: python3 auto_annotate.py -r "FieldData 20200515101008 2L GH070066" -t 0.7
-- Update gt_tasks with auto annotations: python3 /code/auto_annotate.py -u True -m gt_val -d auto_annotation_resnet18_2021_12_16_12_57_57 where -m flag is pattern to match gt task with and -d is the match pattern for auto annotations. The code will match tasks by itself. The idea is to use a well trained detector with high confidence threshold to find missing annotations in the validation dataset and after manual validation push these back to the ground truth task.
-- A special flag has been added for convenience, -w --whatever is connected to the function do_whatever and has been used to set a list of tasks to status completed for example. Modify this code to automate whatever.
-- To upload annotations in xml format from a folder run: python3 /code/auto_annotate.py -x "/train/xml_annotations" as example path.
+- Run with `docker-compose -f docker-compose-auto-annotate.yml up` 
+- Auto annotation parameters: "-f": path to folder with images as "/weed_data/fielddata/tractor-32-cropped/20190524130212/1R/GH010033", "--ext": imgage file extension such as "png", "-t": confidence threshold as "0.7", "-i": iou threshold if run on a task with prior annotations to be able to complete missing annotations set to "0.7" for example, "--model_path": path to PyTorch model to use for auto annotation run like "/train/resnet18_model.pth", "--settings_file": is the settings file given on the format of "/code/settings_file_gt_train_val.json".
+- Setting file variables: "auto_annotation_class_map": used to map network output to object classes.
+- After Auto annotation run is finished and the data and annotations are uploaded to cvat, inspect annotations and correct if needed. Set the task to completed state and go to the weed_annotations dashboard. Update annotations to import them into MongoDB. Then decide on a training/validation split and update the files train_frames_full_hd.npy and val_frames_full_hd.npy that define the frames to include in the dataset.
+- Make a new dataset in two ways: By including the flag -m "True" in the weed_training docker-compose.yml. By running this docker-compose a new training will also be started. Or start the separate compose file: `docker-compose -f docker-compose-make-new-dataset.yml up`, replace up by down when done in the docker-compose command.
 
 
 

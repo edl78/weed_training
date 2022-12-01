@@ -290,9 +290,9 @@ class AutoAnnotations():
 
     def upload_data(self, folder=None, task_name=None, original_task_name=None, annotation_pkl=None):
         endpoint = 'tasks/' + str(self.tasks[task_name]['id']) + '/data'
-        #use "server files" since the storage server is mapped to cvat      
+        #use "server files" since the storage server is mapped to cvat  
         #file_list = glob.glob(folder + '/**/*.png', recursive=True)
-        cvat_root = '/fielddata' + folder
+        cvat_root = '/fielddata' + folder    
         annotations = annotation_pkl[original_task_name]
         annotations.dropna(inplace=True)
         file_list = [entry['img_path'] for entry in annotations]
@@ -335,18 +335,26 @@ class AutoAnnotations():
             print('data upload failed')
 
 
-    def upload_data_gt_format(self, task_name=None, original_task_name=None, annotation_pkl=None):
+    def upload_data_gt_format(self, task_name=None, original_task_name=None, annotation_dataframe=None):
         endpoint = 'tasks/' + str(self.tasks[task_name]['id']) + '/data'
         #use "server files" since the storage server is mapped to cvat      
         #file_list = glob.glob(folder + '/**/*.png', recursive=True)
         #cvat_root = '/fielddata' + folder
-        annotations = annotation_pkl[original_task_name]
+        if(original_task_name is not None):
+            annotations = annotation_dataframe[original_task_name]            
+        else:
+            annotations = annotation_dataframe
+
         annotations.dropna(inplace=True)
         file_list = []        
-        #this is a series so .iterrows do not work.
-        for i in range(len(annotations.index)):
-            for annotation in annotations[annotations.index[i]]:
-                file_list.append(annotation['img_path'])
+        if(original_task_name is not None):
+            #this is a series so .iterrows do not work.
+            for i in range(len(annotations.index)):
+                for annotation in annotations[annotations.index[i]]:
+                    file_list.append(annotation['img_path'])
+        else:
+            for row in annotations[task_name]:
+                file_list.append(row['img_path'])
 
         file_list_unique = np.unique(file_list)
         #/fielddata will be the new root since the server has this mapped, /weed_data is a mapped
@@ -470,6 +478,7 @@ class AutoAnnotations():
                     print(r.reason)
                     print('annotation upload failed')                
 
+        print('annotation upload finished')
 
     def upload_annotations_xml_format(self, task_name=None, image_list=None):
             endpoint = 'tasks/' + str(self.tasks[task_name]['id']) + '/annotations?action=create'
@@ -524,24 +533,34 @@ class AutoAnnotations():
                         print(r.reason)
                         print('annotation upload failed') 
 
+            print('annotation upload finished')
 
 
 
-    def upload_annotations_gt_format(self, task_name=None, original_task_name=None, annotation_pkl=None):
+    def upload_annotations_gt_format(self, task_name=None, original_task_name=None, annotation_dataframe=None, class_map=None):
             endpoint = 'tasks/' + str(self.tasks[task_name]['id']) + '/annotations?action=create'
-            meta = self.get_meta_for_task(task_name=task_name)        
-            annotations_one_task = annotation_pkl[original_task_name]
+            meta = self.get_meta_for_task(task_name=task_name)
+            if(original_task_name is not None):
+                annotations_one_task = annotation_dataframe[original_task_name]
+            else:
+                annotations_one_task = annotation_dataframe[task_name]
             annotations_one_task.dropna(inplace=True)
             annotations = []
             #[entry for entry in annotations_one_task]
             #this is a series so .iterrows do not work.
-            for i in range(len(annotations_one_task.index)):
-                for annotation in annotations_one_task[annotations_one_task.index[i]]:
-                    annotations.append(annotation)
-
+            if(original_task_name is not None):
+                for i in range(len(annotations_one_task.index)):
+                    for annotation in annotations_one_task[annotations_one_task.index[i]]:
+                        annotations.append(annotation)
+            else:
+                annotations = annotations_one_task
             
-            task_labels = self.tasks[task_name]['labels']        
-            db_labels = self.class_map
+            task_labels = self.tasks[task_name]['labels']
+            if(class_map is None):     
+                db_labels = self.class_map
+            else:
+                db_labels = class_map
+
             for annotation in annotations:
                 #get meta info on frame name to number conversion
                 frame_num = self.get_meta_index_of_path(meta=meta, img_path=annotation['img_path'].split('/weed_data/')[-1])
@@ -583,7 +602,9 @@ class AutoAnnotations():
                         print('annotation uploaded')
                     else:
                         print(r.reason)
-                        print('annotation upload failed') 
+                        print('annotation upload failed')
+
+            print('annotation upload finished')
 
 
 
@@ -650,41 +671,69 @@ def calculate_iou(target_box, pred_box):
     return iou
 
 
-def generate_auto_annotation_from_movie(movie_path=None, threshold=0.5, variants=['resnet18']):
-    #this will be separate handling of movie, no targets available
+def generate_auto_annotation_from_folder(folder_path=None, threshold=0.5, iou_threshold=0.7, 
+                                         model_path='/train/reset18_model.pth', img_file_ext='png', 
+                                         settings=None):
     #construct pkl with paths and other info for dataclass? Then feed through normal flow and use
-    #auto annotation function?
-    #boxes = entry["bboxes"]
-    #img_path = entry["img_path"]    
-    #height_crop = entry['height_crop']
-    #side_crop = entry['side_crop'] 
-    pass    
+    #auto annotation function?        
+    height_crop = 0.5
+    side_crop = 0.25
+    
+    t = datetime.now()
+    datestr = t.strftime("%Y_%m_%d_%H_%M_%S")
+
+    class_map = settings['auto_annotation_class_map']
+    auto_annotation_folder = '/auto_annotation/pre_annotation_pkl/'
+    os.makedirs(name=auto_annotation_folder, mode=0o755, exist_ok=True)
+
+    img_list = glob.glob(folder_path + '/*.' + img_file_ext)    
+    task_name = 'auto_annotation_' + datestr
+    df = pandas.DataFrame()
+    for img_path in img_list:        
+        data_entry = {"bboxes": [], "labels": [], "img_path": img_path, 
+                      "height_crop": height_crop, "side_crop": side_crop,
+                      "task_name": task_name}
+        df = df.append(data_entry, ignore_index=True)
+    
+    pickle_path = auto_annotation_folder + datestr + '.pkl'
+    df.to_pickle(pickle_path)
+    print('run auto annotation...') 
+    datestr = generate_auto_annotations(pickle_file=pickle_path, threshold=threshold, 
+                                        iou_auto_annotation_limit=iou_threshold, variant=None, model_path=model_path,
+                                        class_map=class_map, save_img=False)
+    print('auto annotation done, upload results to cvat from folder: ' + datestr)    
+    upload_auto_annotation_task(folder=datestr, task_name=task_name, class_map=class_map)
+    
 
 
-def generate_auto_annotations(pickle_file='/train/pickled_weed/pd_val.pkl', threshold=0.5, iou_auto_annotation_limit=0.1, variant='resnet18'):
+def generate_auto_annotations(pickle_file='/train/pickled_weed/pd_val.pkl', threshold=0.5, 
+                              iou_auto_annotation_limit=0.1, variant='resnet18', model_path=None,
+                              class_map=None, save_img=True):
     t = datetime.now()
     datestr = t.strftime("%Y_%m_%d_%H_%M_%S")
     img_folder_path = '/auto_annotation/imgs'
     auto_annotation_folder = '/auto_annotation/'+datestr
     os.makedirs(name=auto_annotation_folder, mode=0o755, exist_ok=True)
     
-
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     #imagenet   
     data_transform = transforms.Compose([transforms.Normalize(
                                             mean=[0.485, 0.456, 0.406],
                                             std=[0.229, 0.224, 0.225])])
-            
-    model = torch.load('/train/' + variant + '_model.pth')
+    
+    if(model_path is not None):
+        model = torch.load(model_path)
+    else:
+        model = torch.load('/train/' + variant + '_model.pth')
+    
     model.to(device)        
     model.eval()
-    
-    weeds = Weeds(port=int(os.environ['MONGODB_PORT']))
-    #verifiy that order of this array do not change! Must save a class_map json with the model, db can evolve!
-    class_map = weeds.get_object_classes_for_annotations_with_task_filter(filter='FieldData')
-    #for testing without mongodb connection
-    #class_map = ['Black bindweed', 'Cleavers', 'Common furnitory', 'Creeping thistle', 'Curled dock', 'Dandelion', 'Fat hen', 'Rape', 'Scentless Mayweed', 'Unknown weed']
+    if(class_map is None):
+        weeds = Weeds(port=int(os.environ['MONGODB_PORT']))
+        #verifiy that order of this array do not change! Must save a class_map json with the model, db can evolve!
+        class_map = weeds.get_object_classes_for_annotations_with_task_filter(filter='gt_train')    
+
     print(class_map)
     dataset_test = WeedDataOD(pandas_file=pickle_file, device=device, transform=data_transform, class_map=class_map)
     data_loader_test = torch.utils.data.DataLoader(
@@ -756,14 +805,13 @@ def generate_auto_annotations(pickle_file='/train/pickled_weed/pd_val.pkl', thre
                         #move img to upload folder                       
                         img_full_path = img_folder_path + '/' + img_path
                         #only save once:
-                        if(not os.path.exists(img_full_path)):
+                        if(save_img and not os.path.exists(img_full_path)):
                             img.save(img_full_path)
 
             #save annotations, if any, per image
             if(add_annotation):                
                 df = df.append(data_entry, ignore_index=True)
-    #now we have an upload folder and a pkl file of annotations to add,
-    #fix upload to cvat.
+    #now we have an upload folder and a pkl file of annotations to add,    
     df.to_pickle(auto_annotation_folder + '/' + 'auto_annotation.pkl')
     return auto_annotation_folder
 
@@ -853,8 +901,8 @@ def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl'):
         else:
             uploader.create_task(task_name=cvat_task_name)
             uploader.get_tasks()
-            uploader.upload_data_gt_format(task_name=cvat_task_name, original_task_name=sub_task, annotation_pkl=task_based_gt_dataframe)
-            uploader.upload_annotations_gt_format(task_name=cvat_task_name, original_task_name=sub_task, annotation_pkl=task_based_gt_dataframe)
+            uploader.upload_data_gt_format(task_name=cvat_task_name, original_task_name=sub_task, annotation_dataframe=task_based_gt_dataframe)
+            uploader.upload_annotations_gt_format(task_name=cvat_task_name, original_task_name=sub_task, annotation_dataframe=task_based_gt_dataframe)
 
 
 def upload_annotations_xml(folder=None):        
@@ -886,23 +934,30 @@ def upload_annotations_xml(folder=None):
                 uploader.upload_annotations_xml_format(task_name=task_name, image_list=image_list)
             
 
-
-
-
-def upload_from_folder(folder=None, task_name=None):
-        uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
+def upload_auto_annotation_task(folder=None, task_name=None, class_map=None):
+    uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
                                     cvat_base_url=os.environ['CVAT_BASE_URL'])
 
-        #break up task_creation and uploading of data and annotions per sub task_name
-        #since it is problematic to upload all in one go.
-        annotation_pkl = pandas.read_pickle(folder+'/auto_annotation.pkl')
-        img_root = '/auto_annotation/imgs'
-        for sub_task in annotation_pkl.keys():
-            full_sub_task_name = task_name + '_' + sub_task.replace(' ', '_')
-            uploader.create_task(task_name=full_sub_task_name)            
-            uploader.get_tasks()
-            uploader.upload_data(folder=img_root, task_name=full_sub_task_name, original_task_name=sub_task, annotation_pkl=annotation_pkl)
-            uploader.upload_annotations(task_name=full_sub_task_name, original_task_name=sub_task, annotation_pkl=annotation_pkl)
+    annotation_dataframe = pandas.read_pickle(folder+'/auto_annotation.pkl')
+    uploader.create_task(task_name=task_name)            
+    uploader.get_tasks()
+    uploader.upload_data_gt_format(task_name=task_name, original_task_name=None, annotation_dataframe=annotation_dataframe)
+    uploader.upload_annotations_gt_format(task_name=task_name, original_task_name=None, annotation_dataframe=annotation_dataframe, class_map=class_map)
+
+def upload_from_folder(folder=None, task_name=None):
+    uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
+                                cvat_base_url=os.environ['CVAT_BASE_URL'])
+
+    #break up task_creation and uploading of data and annotions per sub task_name
+    #since it is problematic to upload all in one go.
+    annotation_pkl = pandas.read_pickle(folder+'/auto_annotation.pkl')
+    img_root = '/auto_annotation/imgs'
+    for sub_task in annotation_pkl.keys():
+        full_sub_task_name = task_name + '_' + sub_task.replace(' ', '_')
+        uploader.create_task(task_name=full_sub_task_name)            
+        uploader.get_tasks()
+        uploader.upload_data(folder=img_root, task_name=full_sub_task_name, original_task_name=sub_task, annotation_pkl=annotation_pkl)
+        uploader.upload_annotations(task_name=full_sub_task_name, original_task_name=sub_task, annotation_pkl=annotation_pkl)
 
 
 def crop_all(src=None, dst=None, ext=None):
@@ -933,7 +988,7 @@ def crop_all(src=None, dst=None, ext=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Auto annotation with pickle or movie path, run on servers with mapped storage server')
     parser.add_argument('-p', '--pickle_file', type=str, default='/train/pickled_weed/pd_val.pkl', help='pickle file for auto annotation', required=False)
-    parser.add_argument('-f', '--filepath', type=str, help='filepath to movie image folder', required=False)
+    parser.add_argument('-f', '--folder_path', type=str, help='folder path to image folder', required=False)    
     parser.add_argument('-v', '--variant', help='model variant to run', required=False)
     parser.add_argument('-t', '--threshold', type=float, default=0.5, help='confidence threshold', required=False)
     parser.add_argument('-i', '--iou_threshold', type=float, default=0.1, help='iou auto annotation threshold', required=False)
@@ -949,12 +1004,18 @@ if __name__ == "__main__":
     parser.add_argument('--ext', type=str, default='png', help='image file extension', required=False)
     parser.add_argument('--src', type=str, help='source folder to search for images', required=False)
     parser.add_argument('--dst', type=str, help='destination root folder for cropped images, paths will be preserved', required=False)
+    parser.add_argument('--model_path', type=str, help='model path for auto annotation', required=False)
+    parser.add_argument('--settings_file', type=str, default='/code/settings_file_gt_train_val.json', help='settings_file', required=False)
 
     args = parser.parse_args()
+
+    settings = None
+    with open(args.settings_file) as json_file:            
+            settings = json.load(json_file)
     
-    if(args.filepath):
-        generate_auto_annotation_from_movie(movie_path=args.filepath, threshold=args.threshold, 
-                                            variants=args.variant)
+    if(args.folder_path):        
+        generate_auto_annotation_from_folder(folder_path=args.folder_path, threshold=args.threshold, iou_threshold=args.iou_threshold, 
+                                             model_path=args.model_path, img_file_ext=args.ext, settings=settings)
     elif(args.crop_images):
         crop_all(src=args.src, dst=args.dst, ext=args.ext)
     elif(args.update_annotations):
@@ -974,8 +1035,8 @@ if __name__ == "__main__":
         #idea: make new pickle with only the specifik task and reuse code
         full_df = pandas.read_pickle(args.pickle_file)
         #filter on task name and make a new dataframe, save to new pickle
-        weeds = Weeds()
-        class_map = weeds.get_object_classes_for_annotations_with_task_filter(filter='FieldData')      
+        #weeds = Weeds(port=int(os.environ['MONGODB_PORT']))
+        #class_map = weeds.get_object_classes_for_annotations_with_task_filter(filter='FieldData')      
         #task_df = create_dataframe_with_task_as_keys(full_df, class_map)                
         task_df_one_task = full_df[full_df['task_name'] == task_name]
         task_df_one_task.dropna(inplace=True)
@@ -1007,7 +1068,5 @@ if __name__ == "__main__":
         datestr = generate_auto_annotations(pickle_file=args.pickle_file, threshold=args.threshold, 
                                              iou_auto_annotation_limit=args.iou_threshold, variant=args.variant)
         print('auto annotation done, upload results to cvat from folder: auto_annotation/' + datestr)
-        #be sure to use the right root folder, check mapping
-        #datestr = '2021_12_21_13_43_14'
-        upload_from_folder(folder='/auto_annotation/'+datestr, 
+        upload_from_folder(folder='/auto_annotation/' + datestr, 
                             task_name='auto_annotation_' + args.variant + '_' + datestr)

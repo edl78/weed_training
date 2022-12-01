@@ -16,13 +16,11 @@ def main():
     parser.add_argument('-t', '--dataset_training', type=str, default='/train/pickled_weed/pd_train_full_hd.pkl', help='training pickle file', required=False)
     parser.add_argument('-v', '--dataset_validation', type=str, default='/train/pickled_weed/pd_val_full_hd.pkl', help='validation pickle file', required=False)
     parser.add_argument('-m', '--make_new_dataset', type=bool, default=False, help='set to True to make a new pickle dataset', required=False)
+    parser.add_argument('--no_training', type=bool, default=False, help='set to True to skip training when only a new dataset is required', required=False)
     args = parser.parse_args()    
 
     with open(args.settings_file) as json_file:            
             settings = json.load(json_file)
-
-    #argparse hack
-    make_new_dataset = args.make_new_dataset == 'True'
 
     #setup pandas dataset    
     save_dir = settings['save_dir']
@@ -33,13 +31,18 @@ def main():
                                     dataset_dir=settings['dataset_dir'],
                                     mongo_port=int(os.environ['MONGODB_PORT']))
         
-        if(make_new_dataset):                
+        if(args.make_new_dataset):
+            print('make new dataset', flush=True)
             pickledWeed.make_pandas_dataset_with_pre_split(full_hd=settings['full_hd'])
             print('done, pickled pandas frame found at: ' + save_dir)    
         
         #pickledWeed.get_local_files()
-        class_map = pickledWeed.get_class_map(filter='gt_')    
+        class_map = pickledWeed.get_class_map(filter='gt_')  
         print(class_map)
+        
+        if(args.no_training and args.make_new_dataset):
+            print('skip training, just make new dataset')
+            return
     
     
     except:
