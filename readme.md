@@ -13,9 +13,10 @@
 
 ## How to run
 - Shell scripts for building: `sh build_training.sh`
-- To download the images run full_hd (recommended and supported) or 4k versions of `docker-compose-download-full-hd.yml`
-- Upload data to cvat once the cvat service is up (find docs in obdb_docs repo) with: `docker-compose-upload-train-data-cvat.yml` and `docker-compose-upload-val_data-cvat.yml`
-- Set all tasks in cvat to status complete by running: `docker-compose-set-all-cvat-tasks-to-complete.yml` this is needed since the weed_annotations dashboard collects all annotations from tasks that are set in status complete and inserts them into MongoDB.
+- To download the images run full_hd (recommended and supported) or 4k versions of `docker-compose -f docker-compose-download-full-hd.yml up`
+- Upload data to cvat once the cvat service is up (find docs in obdb_docs repo) with: `docker-compose -f docker-compose-upload-train-data-cvat.yml up` and `docker-compose -f docker-compose-upload-val_data-cvat.yml up`
+- There is an optional WASP contributed segmentation dataset, it can be uploaded to cvat via `docker-compose -f docker-compose-upload-wasp-segmentation-data-cvat.yml up` and assumes the data folder with images named wasp is located in the fielddata folder.
+- Set all tasks in cvat to status complete by running: `docker-compose -f docker-compose-set-all-cvat-tasks-to-complete.yml up` this is needed since the weed_annotations dashboard collects all annotations from tasks that are set in status complete and inserts them into MongoDB.
 - Fill usernames and passwords in the env files .env and env.list, .env is used by docker-compose and env.list is sent as environment variables into the container.
 - Run with docker-compose: `docker-compose up -d` run without -d for console output.
 - run_training.sh can be used to run interactive if so desired. Fill in missing usernames and passwords in the shell script.
