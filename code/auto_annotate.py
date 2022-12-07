@@ -448,43 +448,67 @@ class AutoAnnotations():
                 for label in task_labels:                
                     if(db_labels[annotation_label] == label['name']):
                         label_id.append(label['id'])
+            if('bboxes' in annotation.keys()):
+                bboxes = []
+                for box in annotation['bboxes']:
+                    bboxes.append([str(box[0]), str(box[1]), str(box[2]), str(box[3])])                
+                for i in range(len(label_id)):
+                    body = {
+                        'version': 1, 
+                        'tags': [],
+                        'shapes': [{
+                                    'type': 'rectangle',
+                                    'occluded': False,
+                                    'points': bboxes[i],
+                                    'frame': str(frame_num),
+                                    'label_id': label_id[i],
+                                    'group': 0,
+                                    'source': 'automatic',
+                                    'attributes': []
+                        }],
+                        'tracks': []
+                    }
 
-            bboxes = []
-            for box in annotation['bboxes']:
-                bboxes.append([str(box[0]), str(box[1]), str(box[2]), str(box[3])])                
-            for i in range(len(label_id)):
-                body = {
-                    'version': 1, 
-                    'tags': [],
-                    'shapes': [{
-                                'type': 'rectangle',
-                                'occluded': False,
-                                'points': bboxes[i],
-                                'frame': str(frame_num),
-                                'label_id': label_id[i],
-                                'group': 0,
-                                'source': 'automatic',
-                                'attributes': []
-                    }],
-                    'tracks': []
+                    r = requests.patch(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)            
+                    if(r.status_code == 200):                
+                        print('annotation uploaded')
+                    else:
+                        print(r.reason)
+                        print('annotation upload failed')                
 
-                }
-                
+            if(annotation['shape_type'] == 'polygon'):
+                points = []
+                for pointlist in annotation['points']:                    
+                    points.append([str(point) for point in pointlist])                
+                for i in range(len(label_id)):
+                    body = {
+                        'version': 1, 
+                        'tags': [],
+                        'shapes': [{
+                                    'type': 'polygon',
+                                    'occluded': False,
+                                    'points': points[i],
+                                    'frame': str(frame_num),
+                                    'label_id': label_id[i],
+                                    'group': 0,
+                                    'source': 'automatic',
+                                    'attributes': []
+                        }],
+                        'tracks': []
+                    }
 
-                r = requests.patch(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)            
-                if(r.status_code == 200):                
-                    print('annotation uploaded')
-                else:
-                    print(r.reason)
-                    print('annotation upload failed')                
+                    r = requests.patch(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)            
+                    if(r.status_code == 200):                
+                        print('annotation uploaded')
+                    else:
+                        print(r.reason)
+                        print('annotation upload failed')                
 
         print('annotation upload finished')
 
     def upload_annotations_xml_format(self, task_name=None, image_list=None):
             endpoint = 'tasks/' + str(self.tasks[task_name]['id']) + '/annotations?action=create'
             meta = self.get_meta_for_task(task_name=task_name)                                
-            
-            #fix this!
 
             task_labels = self.tasks[task_name]['labels']        
             for annotation in image_list:
@@ -575,38 +599,61 @@ class AutoAnnotations():
                         if(db_labels[annotation_label] == label['name']):
                             label_id.append(label['id'])
 
-                bboxes = []
-                for box in annotation['bboxes']:
-                    bboxes.append([str(box[0]), str(box[1]), str(box[2]), str(box[3])])                
-                for i in range(len(label_id)):
-                    body = {
-                        'version': 1, 
-                        'tags': [],
-                        'shapes': [{
-                                    'type': 'rectangle',
-                                    'occluded': False,
-                                    'points': bboxes[i],
-                                    'frame': str(frame_num),
-                                    'label_id': label_id[i],
-                                    'group': 0,
-                                    'source': 'automatic',
-                                    'attributes': []
-                        }],
-                        'tracks': []
+                if('bboxes' in annotation.keys()):
+                    bboxes = []
+                    for box in annotation['bboxes']:
+                        bboxes.append([str(box[0]), str(box[1]), str(box[2]), str(box[3])])                
+                    for i in range(len(label_id)):
+                        body = {
+                            'version': 1, 
+                            'tags': [],
+                            'shapes': [{
+                                        'type': 'rectangle',
+                                        'occluded': False,
+                                        'points': bboxes[i],
+                                        'frame': str(frame_num),
+                                        'label_id': label_id[i],
+                                        'group': 0,
+                                        'source': 'automatic',
+                                        'attributes': []
+                            }],
+                            'tracks': []
+                        }
 
-                    }
-                    
+                        r = requests.patch(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)            
+                        if(r.status_code == 200):                
+                            print('annotation uploaded')
+                        else:
+                            print(r.reason)
+                            print('annotation upload failed')                
 
-                    r = requests.patch(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)            
-                    if(r.status_code == 200):                
-                        print('annotation uploaded')
-                    else:
-                        print(r.reason)
-                        print('annotation upload failed')
+                if('shape_type' in annotation.keys()):
+                    if(annotation['shape_type'] == 'polygon'):                    
+                        for i in range(len(label_id)):
+                            body = {
+                                'version': 1, 
+                                'tags': [],
+                                'shapes': [{
+                                            'type': 'polygon',
+                                            'occluded': False,
+                                            'points': [str(point) for point in annotation['points']],
+                                            'frame': str(frame_num),
+                                            'label_id': label_id[i],
+                                            'group': 0,
+                                            'source': 'automatic',
+                                            'attributes': []
+                                }],
+                                'tracks': []
+                            }
+
+                            r = requests.patch(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)            
+                            if(r.status_code == 200):                
+                                print('annotation uploaded')
+                            else:
+                                print(r.reason)
+                                print('annotation upload failed')                
 
             print('annotation upload finished')
-
-
 
 
 def trim_targets(targets):    
@@ -697,7 +744,7 @@ def generate_auto_annotation_from_folder(folder_path=None, threshold=0.5, iou_th
     
     pickle_path = auto_annotation_folder + datestr + '.pkl'
     df.to_pickle(pickle_path)
-    print('run auto annotation...') 
+    print('run auto annotation from folder...') 
     datestr = generate_auto_annotations(pickle_file=pickle_path, threshold=threshold, 
                                         iou_auto_annotation_limit=iou_threshold, variant=None, model_path=model_path,
                                         class_map=class_map, save_img=False)
@@ -822,15 +869,34 @@ def create_dataframe_with_task_as_keys(pickle_file=None, class_map=None):
     for task in tasks:
         task_df = pickle_file[pickle_file['task_name'] == task]
         task_df.dropna(inplace=True)        
-        data_entry = {task: list()}        
+        data_entry = {task: list()}
+        int_labels = []
         for index, entry in task_df.iterrows():
             frame_entry = dict()
-            boxes = entry['bboxes']
-            #for compliance with auto annotation labels as int
-            int_labels = [class_map.index(entry['labels'][i]) for i in range(len(entry['labels']))]    
+            #from mongodb:
+            if('bboxes' in entry.keys()):
+                frame_entry['points'] = entry['bboxes']
+                frame_entry['shape_type'] = 'rectangle'
+                #for compliance with auto annotation labels as int
+                int_labels = [class_map.index(entry['labels'][i]) for i in range(len(entry['labels']))]    
+            else:
+                #pickle from cvat:
+                if(entry['shape_type'] == 'rectange'):
+                    frame_entry['points'] = entry['bboxes']
+                    frame_entry['shape_type'] = 'rectangle'
+
+            if(entry['shape_type'] == 'polygon'):
+                frame_entry['points'] = entry['points']
+                frame_entry['shape_type'] = 'polygon'
+
+            if(len(int_labels) == 0):
+                if(isinstance(entry['object_class'], list)):
+                    int_labels = [class_map.index(entry['object_class'][i]) for i in range(len(entry['object_class']))]
+                else:
+                    int_labels.append(class_map.index(entry['object_class']))
+
             img_path = entry['img_path']
-            
-            frame_entry['bboxes'] = boxes
+                        
             frame_entry['labels'] = int_labels
             frame_entry['img_path'] = img_path
             data_entry[task].append(frame_entry)
@@ -884,11 +950,12 @@ def validate_img_paths(dataframe=None, folder=None):
             crop_img.save(img_full_path)
 
 
-def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl'):
+def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl', class_map=None):
     uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
                                     cvat_base_url=os.environ['CVAT_BASE_URL'])
+    if(class_map is None):
+        class_map = uploader.get_class_map()
 
-    class_map = uploader.get_class_map()
     gt_pkl = pandas.read_pickle(pickle_file)
     task_based_gt_dataframe = create_dataframe_with_task_as_keys(pickle_file=gt_pkl, class_map=class_map)
     
@@ -1006,6 +1073,7 @@ if __name__ == "__main__":
     parser.add_argument('--dst', type=str, help='destination root folder for cropped images, paths will be preserved', required=False)
     parser.add_argument('--model_path', type=str, help='model path for auto annotation', required=False)
     parser.add_argument('--settings_file', type=str, default='/code/settings_file_gt_train_val.json', help='settings_file', required=False)
+    parser.add_argument('--class_map', type=str, nargs='+', default='', help='class_map', required=False)
 
     args = parser.parse_args()
 
@@ -1022,8 +1090,8 @@ if __name__ == "__main__":
         #update ground truth annotations with verified auto annotations
         #via rest api, download and then upload annotations if newer date on auto annotations        
         update_gt_with_auto_annotations(gt_match=args.match_pattern_gt, auto_annotation_date=args.auto_annotation_folder)
-    elif(args.upload_pkl):
-        upload_ground_truths(pickle_file=args.pickle_file)
+    elif(args.upload_pkl):        
+        upload_ground_truths(pickle_file=args.pickle_file, class_map=args.class_map)
     elif(args.whatever):
         do_whatever()
     elif(args.set_complete):
