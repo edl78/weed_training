@@ -6,7 +6,6 @@ services:
     shm_size: 4g
     env_file:
       - env.list
-    restart: unless-stopped
     image: training:v1
     container_name: weed_training    
     volumes:

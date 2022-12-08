@@ -4,7 +4,6 @@ services:
   weed_training:
     env_file:
       - env.list
-    restart: unless-stopped
     image: training:v1
     container_name: weed_training    
     volumes:

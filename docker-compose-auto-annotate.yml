@@ -6,7 +6,6 @@ services:
     shm_size: 4g
     env_file:
       - env.list
-    restart: unless-stopped
     image: training:v1
     container_name: weed_training    
     volumes:
@@ -15,4 +14,4 @@ services:
       - ./vision:/code/vision
       - ${WEED_DATA_PATH}:/weed_data
     network_mode: "host"
-    entrypoint: ["python3", "/code/auto_annotate.py", "-f", "/weed_data/fielddata/tractor-32-cropped/20190524130212/3L/GH010035", "--ext", "png", "-t", "0.7", "-i", "0.7", "--model_path", "/train/resnet18_model.pth", "--settings_file", "/code/settings_file_gt_train_val.json"]
+    entrypoint: ["python3", "/code/auto_annotate.py", "-f", "/weed_data/fielddata/tractor-32-cropped/20200603102414/3R/GH020082", "--ext", "png", "-t", "0.7", "-i", "0.7", "--model_path", "/train/resnet18_model.pth", "--settings_file", "/code/settings_file_gt_train_val.json"]
