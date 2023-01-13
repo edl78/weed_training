@@ -12,6 +12,7 @@ def progressBar(current, total, width=80):
   sys.stdout.flush()
 
 def main(weed_file, root_folder, base_url):
+    root_folder = root_folder + '/fielddata'
     os.makedirs(root_folder + '/tractor-33-zipped', exist_ok = True)
 
     download_list = None

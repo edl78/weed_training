@@ -10,8 +10,8 @@ services:
       - ./train:/train
       - ./code:/code
       - ./vision:/code/vision
-      - ${KNOWN_HOSTS_PATH}:/home/dopamine/.ssh/known_hosts
       - ${WEED_DATA_PATH}:/weed_data
       - ./file_lists:/file_lists
     network_mode: "host"
     entrypoint: ["python3", "/code/download_all_weed_data.py", "-f", "/file_lists/weed_tar_files_4k.txt", "-r", "/weed_data"]
+    restart: "no"
