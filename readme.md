@@ -2,7 +2,7 @@
 
 ## Architecture
 - Depends on having a mongodb instance with all annotation data collected from CVAT, meaning weed_annotations must first be started.
-- Bayesisan optimization via Sherpa for hyperparameters.
+- Bayesian optimization via Sherpa for hyperparameters.
 - Can output a number of networks ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152'] or any combination of pytorch available networks. Configured to train a resnet18 for the weed detection task.
 - If fast track method is chosen, weed_training is stand alone and depends only on the image data and pickle files.
 
@@ -22,7 +22,7 @@
 - run_training.sh can be used to run interactive if so desired. Fill in missing usernames and passwords in the shell script.
 - In interactive mode, after starting the contrainer, go to /code and run `python3 torch_model_runner.py -f path_to_json_settings_file -t path_to_train_pkl_file -v path_to_val_pkl_file`
 - The trained networks can then be found in the mapped folder train or /train in the container. A file with optimal training parameters is also located together with the network.
-- Bayeisan hyper parameter search is implemented with the Sherpa library. Use this by setting "run_hpo": 1 in code/settings_file_gt_train_val.json under respective network. The parameter "fake_dataset_len" is also used as the optimization tries to overfit as agressively as possible on this small dataset. This overrides the dataset size in the dataloader during training.
+- Bayesian hyper parameter search is implemented with the Sherpa library. Use this by setting "run_hpo": 1 in code/settings_file_gt_train_val.json under respective network. The parameter "fake_dataset_len" is also used as the optimization tries to overfit as agressively as possible on this small dataset. This overrides the dataset size in the dataloader during training.
 - Watch the hyper parameter tuning on localhost:8880 and the training and validation losses for all runs on localhost:6006 after pointing your local tensorboard to code/runs/name_of_the_run
 - The json configuration file looks like this: 
 ```json
