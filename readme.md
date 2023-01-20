@@ -22,9 +22,22 @@ For an overview of the Openweeds project and some background on this documentati
 - There is an optional WASP contributed segmentation dataset, it can be uploaded to cvat via `docker-compose -f docker-compose-upload-wasp-segmentation-data-cvat.yml up` and assumes the data folder with images named wasp is located in the fielddata folder.
 
 ### Training
+All training depend on pickle files. These can be created (see Auto-annotations section below) or found in the `artefacts` folder. To use the downloaded pickle files, they must be moved from the artefacts folder to the train folder according the set path variables above. The path to the pickle files to be used should be set in the variables `TRAINING_PICKLE_PATH` and `VALIDATION_PICKLE_PATH` in the `.env` file. Important to note that these paths are not host paths but rather paths as seen from the inside of the container using them. Thus any pickle file must be found somewhere under the `train` folder as mounted by the docker-compose file. 
+
+To start training, the main docker-compose is used, run: `docker-compose up -d` (i.e. run without specific docker-compose file, run without -d for console output). To run interactive `run_training.sh` can be used to run interactive if so desired. Fill in missing usernames and passwords in the `run_training.sh` shell script before starting it.
+
+
+
+#### For fast-track
+
+
+
+#### Complete
+
+
 Use these for training
-- To start training, the main docker-compose is used, run: `docker-compose up -d` (run without -d for console output).
-- run_training.sh can be used to run interactive if so desired. Fill in missing usernames and passwords in the shell script.
+- 
+- 
 - The trained networks can then be found in the mapped folder train or /train in the container. A file with optimal training parameters is also located together with the network.
 - Bayesian hyper parameter search is implemented with the Sherpa library. Use this by setting `run_hpo`: 1 in `code/settings_file_gt_train_val.json` under respective network. 
 - Watch the hyper parameter tuning on localhost:8880 and the training and validation losses for all runs on localhost:6006 after pointing your local tensorboard to code/runs/name_of_the_run
@@ -101,6 +114,8 @@ There are two ways to load annotations into MongoDB.
 
 *Alternative 2*: - Fetch all annotations via dashboard (available after starting weed_annotations) to MongoDB: press update annotations button in the dashboard running on localhost:8050
 - MongoDB contents can be viewed via localhost:8081, on the MongoExpress GUI.
+
+### Create pickle files
 
 ### To interact with CVAT
 Depending on what you are doing, these might be needed
