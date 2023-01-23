@@ -127,12 +127,13 @@ There are two ways to load annotations into MongoDB.
 
 
 ### Debugging
-- In interactive mode, after starting the contrainer, go to /code and run `python3 torch_model_runner.py -f path_to_json_settings_file -t path_to_train_pkl_file -v path_to_val_pkl_file`
+- In interactive mode, after starting the contrainer, go to `/code` and run `python3 torch_model_runner.py -f path_to_json_settings_file -t path_to_train_pkl_file -v path_to_val_pkl_file`
 
 
 ### Metrics
-- Run this with: `docker-compose -f docker-compose-metrics.yml up`
-- Output in train/class_metrics.json file which is used to produce graphs default put under train/result_figures/ with a number of svg files. Replace up with down to remove the container when done in the docker-compose command.
+- Copy trained model to `/train`. For simple test copy `resnet18_model.pth` from `artefacts` folder to `/train`, otherwise use your own model. Path to model can also be set in `docker-compose-metrics.yml`. Change other parameters as required.
+- Run with: `docker-compose -f docker-compose-metrics.yml up`
+- Output in `train/class_metrics.json` file which is used to produce graphs default put under `train/result_figures/` with a number of SVG files.
 
 
 ## Auto annotation - life-cycle of annotations
