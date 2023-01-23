@@ -58,7 +58,7 @@ class WeedDataOD(Dataset):
         
         img = np.array(img)/255.0
         if(img.shape == (1080, 1920, 3)):
-            print('pre cropped img, no cropping!')
+            pass
         elif(img.shape == (2160, 3840, 3)):
             #if img has been through auto annotation with uploading of cropped img
             #these properties are set in regard to the cropped img. We have pointed
