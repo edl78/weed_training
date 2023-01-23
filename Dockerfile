@@ -1,5 +1,7 @@
-FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
+#FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu18.04
 
+COPY ./sources.list.se /etc/apt/sources.list
 RUN apt-get update
 RUN apt-get install -y apt-utils
 RUN apt-get install -y python3-pip 
@@ -11,8 +13,8 @@ RUN pip3 install matplotlib setuptools
 RUN pip3 install parameter-sherpa
 RUN apt-get update && apt-get install -y xauth
 #RUN pip3 install torch==1.6.0+cu101 torchvision==0.7.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
-RUN pip3 install torch==1.9.0+cu102 torchvision==0.10.0+cu102 -f https://download.pytorch.org/whl/torch_stable.html
-#RUN pip3 install torch==1.7.1+cu101 torchvision==0.8.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+#RUN pip3 install torch==1.9.0+cu102 torchvision==0.10.0+cu102 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip3 install torch==1.9.0+cu111 torchvision==0.10.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 RUN pip3 install pymongo
 RUN pip3 install flask
 RUN pip3 install numpyencoder

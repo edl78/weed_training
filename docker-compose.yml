@@ -3,6 +3,20 @@ version: '3.4'
 services:
   weed_training:
     runtime: nvidia
+    # if newer docker-compose and/or docker.io instead of docker-ce
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #       - driver: nvidia
+    #         # that's the closest analogue to --gpus; provide
+    #         # an integer amount of devices or 'all'
+    #         count: 1
+    #         # Devices are reserved using a list of capabilities, making
+    #         # capabilities the only required field. A device MUST 
+    #         # satisfy all the requested capabilities for a successful 
+    #         # reservation.
+    #         capabilities: [gpu]
     shm_size: 4g
     env_file:
       - env.list

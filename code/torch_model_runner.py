@@ -62,9 +62,6 @@ def main():
                                 fake_dataset_len=settings['fake_dataset_len'])
             
             trainer.sherpa_hpo()
-            #use newly created settings file after HPO
-            trainer.train_model(settings_file='/train/' + variant + '_settings.json')
-
         else:
             trainer = ModelTrainer(dataset_path=dataset, 
                                     dataset_test_path=dataset_test,
