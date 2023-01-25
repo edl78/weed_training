@@ -10,7 +10,6 @@ services:
       - ./train:/train
       - ./code:/code
       - ./vision:/code/vision
-      - ${KNOWN_HOSTS_PATH}:/home/dopamine/.ssh/known_hosts
       - ${WEED_DATA_PATH}:/weed_data    
     network_mode: "host"
-    entrypoint: ["python3", "/code/auto_annotate.py", "--upload_pkl", "True", "-p", "/train/wasp_data_path_fix_from_docker.pkl", "--class_map", "crop", "soil", "thistle"]
+    entrypoint: ["python3", "/code/auto_annotate.py", "--upload_pkl", "True", "-p", "/train/wasp_data_segmentation.pkl", "--class_map", "crop", "soil", "thistle"]
