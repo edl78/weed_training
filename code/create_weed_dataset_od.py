@@ -154,7 +154,7 @@ class PickledWeedOD():
                 shape_types = []
                 for annotation in annotations:                                                     
                     labels.append(annotation['object_class'])
-                    shape_types.append(annotation['shape_type'])
+                    shape_types.append(annotation['shape_types'])
                     num_points = len(annotation['points'])
                     if(num_points == 4):
                         #bbox format: [xmin, ymin, xmax, ymax]
@@ -246,7 +246,7 @@ class PickledWeedOD():
                 shape_types = []
                 for annotation in annotations:                                                     
                     labels.append(annotation['object_class'])
-                    shape_types.append(annotation['shape_type'])
+                    shape_types.append(annotation['shape_types'])
                     num_points = len(annotation['points'])
                     if(num_points == 4):
                         #bbox format: [xmin, ymin, xmax, ymax]

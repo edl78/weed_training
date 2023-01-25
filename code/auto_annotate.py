@@ -35,8 +35,11 @@ class AutoAnnotations():
         self.headers = None
         self.tasks = dict()
         self.login()
-        self.weeds = Weeds(port=int(os.environ['MONGODB_PORT']))
-        self.class_map = self.weeds.get_object_classes_for_annotations_with_task_filter(filter='FieldData')
+        try:
+            self.weeds = Weeds(port=int(os.environ['MONGODB_PORT']))
+            self.class_map = self.weeds.get_object_classes_for_annotations_with_task_filter(filter='FieldData')
+        except:
+            print('Run without MongoDB')
 
 
     def get_labels(self):
@@ -476,7 +479,7 @@ class AutoAnnotations():
                         print(r.reason)
                         print('annotation upload failed')                
 
-            if(annotation['shape_type'] == 'polygon'):
+            if(annotation['shape_types'] == 'polygon'):
                 points = []
                 for pointlist in annotation['points']:                    
                     points.append([str(point) for point in pointlist])                
@@ -627,8 +630,8 @@ class AutoAnnotations():
                             print(r.reason)
                             print('annotation upload failed')                
 
-                if('shape_type' in annotation.keys()):
-                    if(annotation['shape_type'] == 'polygon'):                    
+                if('shape_types' in annotation.keys()):
+                    if(annotation['shape_types'] == 'polygon'):                    
                         for i in range(len(label_id)):
                             body = {
                                 'version': 1, 
@@ -876,18 +879,18 @@ def create_dataframe_with_task_as_keys(pickle_file=None, class_map=None):
             #from mongodb:
             if('bboxes' in entry.keys()):
                 frame_entry['points'] = entry['bboxes']
-                frame_entry['shape_type'] = 'rectangle'
+                frame_entry['shape_types'] = 'rectangle'
                 #for compliance with auto annotation labels as int
                 int_labels = [class_map.index(entry['labels'][i]) for i in range(len(entry['labels']))]    
             else:
                 #pickle from cvat:
-                if(entry['shape_type'] == 'rectange'):
+                if(entry['shape_types'] == 'rectange'):
                     frame_entry['points'] = entry['bboxes']
-                    frame_entry['shape_type'] = 'rectangle'
+                    frame_entry['shape_types'] = 'rectangle'
 
-            if(entry['shape_type'] == 'polygon'):
+            if(entry['shape_types'] == 'polygon'):
                 frame_entry['points'] = entry['points']
-                frame_entry['shape_type'] = 'polygon'
+                frame_entry['shape_types'] = 'polygon'
 
             if(len(int_labels) == 0):
                 if(isinstance(entry['object_class'], list)):
@@ -1090,8 +1093,8 @@ if __name__ == "__main__":
         #update ground truth annotations with verified auto annotations
         #via rest api, download and then upload annotations if newer date on auto annotations        
         update_gt_with_auto_annotations(gt_match=args.match_pattern_gt, auto_annotation_date=args.auto_annotation_folder)
-    elif(args.upload_pkl):        
-        upload_ground_truths(pickle_file=args.pickle_file, class_map=args.class_map)
+    elif(args.upload_pkl):                
+        upload_ground_truths(pickle_file=args.pickle_file, class_map=settings['default_class_map'])
     elif(args.whatever):
         do_whatever()
     elif(args.set_complete):
