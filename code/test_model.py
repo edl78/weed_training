@@ -13,7 +13,15 @@ import json
 from pprint import pprint
 from metrics import DetectionMetrics
 import matplotlib.pyplot as plt
-
+from torchmetrics.detection.mean_ap import MeanAveragePrecision
+from pprint import pprint
+#padilla code need to be located in the same directory as the code calling it
+from Evaluator import Evaluator
+from utils import *
+from BoundingBox import BoundingBox
+from BoundingBoxes import BoundingBoxes
+from datetime import datetime
+from torch_model_runner import get_num_examples_per_class_in_dataset
 
 
 
@@ -106,6 +114,9 @@ def automatic_per_class_metric_test(model_path=None, pickle_file=None, save_imgs
         dataset_test, batch_size=2, shuffle=False, num_workers=1, collate_fn=my_collate, drop_last=True)
 
     my_metrics = DetectionMetrics(class_map, confidence_thresholds=confidence_threshold, iou_thresholds=iou_threshold)
+    #torch_metric = MeanAveragePrecision(iou_type="bbox", iou_thresholds= [0.50, 0.60, 0.70, 0.80, 0.90], class_metrics=True)
+    torch_metric = MeanAveragePrecision(iou_type="bbox", class_metrics=True)
+    myBoundingBoxes = BoundingBoxes()
     
     for i, data in enumerate(data_loader_test, 0): 
         print(i)             
@@ -162,19 +173,68 @@ def automatic_per_class_metric_test(model_path=None, pickle_file=None, save_imgs
                 'boxes': targets_boxes_np[r],
                 'labels': targets_labels_np[r]
             }
-            
+
             #filter inside
             result_detection_metrics = {
                 'boxes': preds_boxes_np[r],
                 'labels': preds_labels_np[r],
                 'scores': preds_scores_np[r]
             }
-                            
-            if(len(gt['boxes'][0]) > 0):
-                my_metrics.update(predictions=result_detection_metrics, gt=gt)
-                                                        
-    my_metrics.calc_metrics(metrics_save_path=metrics_save_path)    
 
+            preds_cpu = {}
+            if(len(gt['boxes'][0]) > 0):
+                preds_cpu['boxes'] = preds[r]['boxes'].detach().cpu()
+                preds_cpu['labels'] = preds[r]['labels'].detach().cpu()
+                preds_cpu['scores'] = preds[r]['scores'].detach().cpu()
+                my_metrics.update(predictions=result_detection_metrics, gt=gt)
+                torch_metric.update([preds_cpu], [targets[r]])
+
+            for g in range(len(gt['labels'])):
+                gt_boundingBox = BoundingBox(imageName='img_' + str(i) + '_' + str(r), classId=class_map[gt['labels'][g]], x=gt['boxes'][g][0], y=gt['boxes'][g][1], 
+                                    w=gt['boxes'][g][2], h=gt['boxes'][g][3], typeCoordinates=CoordinatesType.Absolute,
+                                    bbType=BBType.GroundTruth, format=BBFormat.XYX2Y2)
+                
+                myBoundingBoxes.addBoundingBox(gt_boundingBox)
+
+            for d in range(len(preds_cpu['labels'])):
+                detected_boundingBox = BoundingBox(imageName='img_' + str(i) + '_' + str(r), classId=class_map[preds_cpu['labels'][d]], classConfidence=preds_cpu['scores'][d], 
+                                        x=preds_cpu['boxes'][d][0], y=preds_cpu['boxes'][d][1], w=preds_cpu['boxes'][d][2], h=preds_cpu['boxes'][d][3], 
+                                        typeCoordinates=CoordinatesType.Absolute, bbType=BBType.Detected, format=BBFormat.XYX2Y2)
+                            
+                myBoundingBoxes.addBoundingBox(detected_boundingBox)
+
+
+    my_metrics.calc_metrics(metrics_save_path=metrics_save_path)
+    pprint(torch_metric.compute())
+    evaluator = Evaluator()
+    metricsPerClass = evaluator.GetPascalVOCMetrics(myBoundingBoxes, IOUThreshold=0.3)
+    print("Average precision values per class:\n")
+    # Loop through classes to obtain their metrics
+    AP = dict()
+    for mc in metricsPerClass:
+        # Get metric values per each class
+        c = mc['class']
+        precision = mc['precision']
+        #print(str(precision))
+        recall = mc['recall']
+        #print(str(recall))
+        average_precision = mc['AP']
+        ipre = mc['interpolated precision']
+        #print(str(ipre))
+        irec = mc['interpolated recall']
+        #print(str(irec))
+        # Print AP per class
+        if(average_precision.dtype != 'float64'):
+            average_precision = 0.0
+        print('%s: %f' % (c, average_precision))        
+        AP[c] = average_precision
+
+    t = datetime.now()
+    datestr = t.strftime("%Y_%m_%d_%H_%M_%S")
+    with open('/train/AveragePrecision_' + datestr + '.json', 'w') as ap_file:            
+            json.dump(AP, ap_file)
+
+    print('nice stopping point to print stats...')
 
 
 
@@ -205,13 +265,18 @@ if __name__ == "__main__":
         metrics_iou_range = settings ['metrics_iou_range']
     
     metrics_save_path = args.save_path + '/class_metrics.json'        
-    class_map = settings["default_class_map"]
+    
     try:
         weeds = Weeds(port=int(os.environ["MONGODB_PORT"]))    
         class_map = weeds.get_object_classes_for_annotations_with_task_filter('gt_val')
     except:
         print('Error, no connection with MongoDB, this is ok if fast track mode is chosen.')
+        
+    get_num_examples_per_class_in_dataset(args.pickle_path)
 
+    #override class map
+    class_map = settings["default_class_map"]
+    print(class_map)
     automatic_per_class_metric_test(model_path=args.model_path, pickle_file = args.pickle_path, save_imgs=save_images, 
                                     confidence_threshold=metrics_confidence_range,
                                     iou_threshold=metrics_iou_range, class_map=class_map,
