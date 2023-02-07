@@ -185,8 +185,8 @@ class DetectionMetrics():
                     vals = []
                     
                     for iou in graph_dict[metric][key]: 
-                        ious.append(np.float(graph_dict[metric][key][iou]))
-                        vals.append(np.float(graph_dict[metric][key][iou]))
+                        ious.append(np.float32(graph_dict[metric][key][iou]))
+                        vals.append(np.float32(graph_dict[metric][key][iou]))
                                                             
                     plt.plot(vals, color=colors[i], label=str(key) + ' conf')
                     i += 1
