@@ -129,11 +129,13 @@ There are two ways to load annotations into MongoDB.
 - Requires that you followed "To interact with CVAT" above and weed_annotations up and running.
 - MongoDB contents can be viewed via localhost:8081, on the MongoExpress GUI.
 
+
 ### Create pickle files
+- Update the MongoDB by pressing `update annotations` on the `weed_annotations` dashboard if new annotations have been added in CVAT.
 - Add any new CVAT tasks to the config file `code/settings_file_gt_train_val.json`. 
 - Add the training and validation frames in `/train/pickled_weed/*.npy`.
-- Create new pickle files for training by running `docker-compose-make-new-dataset.yml`. 
-- Update the MongoDB by pressing `update annotations` on the `weed_annotations` dashboard.
+- Add names of pickle files in `.env` and `env.list` and add the name of the task list, `TASK_LIST_NAME=` to use in the `code/settings_file_gt_train_val.json`. The pickle file will be created based on this task list and the list of validation and training frames in the `.npy` files.
+- Set `full_hd` to 1 or 0 in the `code/settings_file_gt_train_val.json` to set full_hd vs 4k. Create new pickle files for training by running `docker-compose-make-new-dataset.yml`. A good idea would be to name 4k pickle files `pd_train_4k.pkl` and `pd_val_4k.pkl` for example.
 
 
 ### Debugging
