@@ -6,7 +6,7 @@ services:
     shm_size: 4g
     env_file:
       - env.list
-    image: training:v1
+    image: training:v2
     container_name: weed_training    
     volumes:
       - ./train:/train
@@ -14,4 +14,4 @@ services:
       - ./vision:/code/vision      
       - ${WEED_DATA_PATH}:/weed_data    
     network_mode: "host"
-    entrypoint: ["python3", "/code/torch_model_runner.py", "-t", "${TRAINING_PICKLE_PATH}", "-v", "${VALIDATION_PICKLE_PATH}", "-m", "True", "--no_training", "True"]
+    entrypoint: ["python3", "/code/torch_model_runner.py", "-t", "${TRAINING_PICKLE_PATH}", "-v", "${VALIDATION_PICKLE_PATH}", "-m", "True", "--no_training", "True", "-l", "${TASK_LIST_NAME}"]

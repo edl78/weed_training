@@ -4,7 +4,7 @@ services:
   weed_training:
     env_file:
       - env.list
-    image: training:v1
+    image: training:v2
     container_name: weed_training    
     volumes:
       - ./train:/train
