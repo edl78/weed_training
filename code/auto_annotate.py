@@ -37,7 +37,7 @@ class AutoAnnotations():
         self.login()
         try:
             self.weeds = Weeds(port=int(os.environ['MONGODB_PORT']))
-            self.class_map = self.weeds.get_object_classes_for_annotations_with_task_filter(filter='FieldData')
+            self.class_map = self.weeds.get_object_classes_for_annotations_with_task_filter(filter='gt_train')
         except:
             print('Run without MongoDB')
 
