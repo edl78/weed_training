@@ -14,7 +14,6 @@ class PickledWeedOD():
         self.save_dir = save_dir
         self.dataset_dir = dataset_dir
         os.makedirs(name=self.save_dir, mode=0o755, exist_ok=True)
-        self.class_map = None
         self.weeds = Weeds(port=int(mongo_port))
         self.class_map = self.weeds.get_object_classes_for_all_annotations()
         self.height_crop = 0.5
@@ -94,7 +93,7 @@ class PickledWeedOD():
         return purge_boxes, purge_labels, purge_shape_types
 
 
-    def make_pandas_dataset_with_pre_split(self, full_hd=True):
+    def make_pandas_dataset_with_pre_split(self, full_hd=True, excluded_frames=[], train_pickle_path=None, val_pickle_path=None):
         #get annotations for each frame and build the pandas entry for od
         df_train = pandas.DataFrame()
         df_val = pandas.DataFrame()
@@ -114,7 +113,7 @@ class PickledWeedOD():
                 problems.append(frame_path)        
 
         for task_name in self.task_name_list:
-            print('extract annotations for: ' + task_name)        
+            print('extract annotations for: ' + task_name, flush=True)            
             #get frames with annotations from metadata
             meta_cursor = self.weeds.get_meta_for_task(task_name)
             meta_data = {}
@@ -122,6 +121,10 @@ class PickledWeedOD():
                 meta_data[item['task_name']] = item
             
             for meta in meta_data[task_name]['frames']:
+                if(meta['name'] in excluded_frames):
+                    print('skipping problematic frame: ' + meta['name'])
+                    continue
+
                 annotations = []
                 annotations_cursor = self.weeds.get_annotations_for_task_and_frame(task_name, meta['name'])
                 for index, item in enumerate(annotations_cursor):
@@ -133,17 +136,7 @@ class PickledWeedOD():
                 dataEntry['img_height'] = meta['height']
                 dataEntry['task_name'] = task_name 
                 dataEntry['height_crop'] = self.height_crop
-                dataEntry['side_crop'] = self.side_crop
-                #correct for full_hd img folder (new format) if needed
-                if(full_hd):
-                    #new auto annotate format
-                    replace_str = self.dataset_dir +'/fielddata/auto_annotation/imgs/weed_data/fielddata/tractor-31-extracted'
-                    dataEntry['img_path'] = dataEntry['img_path'].replace(replace_str, self.dataset_dir + '/fielddata/tractor-32-cropped')
-                    #old auto annotate format
-                    replace_str = '/weed_data/fielddata/auto_annotation/resnet18/2021_12_16_12_57_57/weed_data/fielddata/tractor-31-extracted'
-                    dataEntry['img_path'] = dataEntry['img_path'].replace(replace_str, self.dataset_dir + '/fielddata/tractor-32-cropped')
-                    #old uncropped format
-                    dataEntry['img_path'] = dataEntry['img_path'].replace('tractor-31-extracted', 'tractor-32-cropped')
+                dataEntry['side_crop'] = self.side_crop                
                 
                 pre_cropped_img = False
                 if(meta['width'] == 1920 and meta['height'] == 1080):
@@ -152,10 +145,12 @@ class PickledWeedOD():
                 bboxes = []
                 labels = []
                 shape_types = []
+                points = []
                 for annotation in annotations:                                                     
                     labels.append(annotation['object_class'])
                     shape_types.append(annotation['shape_types'])
                     num_points = len(annotation['points'])
+                    points.append(annotation['points'])
                     if(num_points == 4):
                         #bbox format: [xmin, ymin, xmax, ymax]
                         bboxes.append(np.array((annotation['points'][0],
@@ -177,18 +172,24 @@ class PickledWeedOD():
                         print('less than 4 points in annotation!')
                         print(annotation)
 
-                purged_bboxes, purged_labels, purged_shape_types = ([],[],[])
-                if(pre_cropped_img):
+                purged_bboxes, purged_labels, purged_shape_types = ([],[],[])                
+                if(pre_cropped_img or not full_hd):
                     dataEntry['bboxes'] = bboxes
                     dataEntry['labels'] = labels
                     dataEntry['shape_types'] = shape_types
+                    #ok since we only add points for upload via pkl
+                    dataEntry['points'] = points
                 else:
-                    purged_bboxes, purged_labels, purged_shape_types = self.purge_bboxes(dataEntry, bboxes, labels, shape_types)
-                    dataEntry['bboxes'] = purged_bboxes
-                    dataEntry['labels'] = purged_labels
-                    dataEntry['shape_types'] = purged_shape_types
-                
-                if(len(purged_labels) > 0 or pre_cropped_img):
+                    if(full_hd):
+                        purged_bboxes, purged_labels, purged_shape_types = self.purge_bboxes(dataEntry, bboxes, labels, shape_types)
+                        dataEntry['bboxes'] = purged_bboxes
+                        dataEntry['labels'] = purged_labels
+                        dataEntry['shape_types'] = purged_shape_types
+                    else:
+                        print('unhandled variant of annotations, please inspect!')
+                        return
+
+                if(len(dataEntry['labels']) > 0):
                     im_path = dataEntry['img_path']
                     validation_frame_match = None
                     #strip auto_annotation part from path string if we have a reference to the full hd cropped img
@@ -200,21 +201,14 @@ class PickledWeedOD():
                         validation_frame_match = np.argwhere(val_frames == im_path)
                                         
                     #sneaky, df.append will return the new dataframe...
-                    if(len(validation_frame_match) > 0):                        
-                        if(len(dataEntry['bboxes']) > 0):
-                            #could potentially be no annotations in the frame if a false auto annotation has been removed
-                            df_val = df_val.append(dataEntry, ignore_index=True)
-                    else:
-                        if('gt_val' in task_name):
-                            print(im_path + ' not in val_frames')
-                        if(len(dataEntry['bboxes']) > 0):
-                            df_train = df_train.append(dataEntry, ignore_index=True)
-        if(full_hd):
-            df_val.to_pickle(self.save_dir + '/pd_val_full_hd.pkl')
-            df_train.to_pickle(self.save_dir + '/pd_train_full_hd.pkl')
-        else:    
-            df_val.to_pickle(self.save_dir + '/pd_val_4k.pkl')
-            df_train.to_pickle(self.save_dir + '/pd_train_4k.pkl')
+                    if(len(validation_frame_match) > 0):         
+                        df_val = df_val.append(dataEntry, ignore_index=True)
+                    else:                        
+                        df_train = df_train.append(dataEntry, ignore_index=True)
+        
+        df_val.to_pickle(val_pickle_path)
+        df_train.to_pickle(train_pickle_path)
+        
 
 
     def make_pandas_dataset(self, pickle_name=None):                       
