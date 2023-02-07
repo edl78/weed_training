@@ -38,15 +38,23 @@ class WeedDataOD(Dataset):
         entry = self.df.iloc[idx]  
         boxes = entry["bboxes"]
         img_path = entry["img_path"]
-        img = Image.open(img_path).convert("RGB")
+        
+        try:
+            img = Image.open(img_path).convert("RGB")
+        except:
+            print('error opening img file: ' + img_path)
+        
         height_crop = entry['height_crop']
         side_crop = entry['side_crop']        
                    
         #translate class into global class list 
         num_objs = len(entry["labels"])        
         labels = []
-        for i in range(num_objs):                        
-            labels.append(self.class_map.index(entry['labels'][i]))
+        for i in range(num_objs):
+            if(self.class_map[0] == 'Background'):
+                labels.append(self.class_map.index(entry['labels'][i]))
+            else:
+                labels.append(self.class_map.index(entry['labels'][i]) + 1)
 
         # convert everything into a torch.Tensor        
         boxes_tensor = torch.as_tensor(boxes, dtype=torch.float32)
