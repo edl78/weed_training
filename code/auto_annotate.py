@@ -992,11 +992,11 @@ def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl', class_map
         uploader.get_tasks()
         tasks = uploader.get_internal_task_list()
         if(cvat_task_name in tasks.keys()):
-            #print('task already in cvat, check upload list and cvat')          
-            #else:
-            #uploader.create_task(task_name=cvat_task_name)
+            print('task already in cvat, check upload list and cvat')          
+        else:
+            uploader.create_task(task_name=cvat_task_name)
             uploader.get_tasks()
-            #uploader.upload_data_gt_format(task_name=cvat_task_name, original_task_name=sub_task, annotation_dataframe=task_based_gt_dataframe)
+            uploader.upload_data_gt_format(task_name=cvat_task_name, original_task_name=sub_task, annotation_dataframe=task_based_gt_dataframe)
             uploader.upload_annotations_gt_format(task_name=cvat_task_name, original_task_name=sub_task, 
                                                     annotation_dataframe=task_based_gt_dataframe, class_map=class_map)
 
