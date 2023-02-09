@@ -639,7 +639,32 @@ class AutoAnnotations():
                                 'shapes': [{
                                             'type': 'polygon',
                                             'occluded': False,
-                                            'points': [str(point) for point in annotation['points']],
+                                            'points': [str(point) for point in annotation['points'][i]],
+                                            'frame': str(frame_num),
+                                            'label_id': label_id[i],
+                                            'group': 0,
+                                            'source': 'automatic',
+                                            'attributes': []
+                                }],
+                                'tracks': []
+                            }
+
+                            r = requests.patch(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)            
+                            if(r.status_code == 200):                
+                                print('annotation uploaded')
+                            else:
+                                print(r.reason)
+                                print('annotation upload failed')
+                    
+                    if(annotation['shape_types'] == 'rectangle'):                    
+                        for i in range(len(label_id)):
+                            body = {
+                                'version': 1, 
+                                'tags': [],
+                                'shapes': [{
+                                            'type': 'rectangle',
+                                            'occluded': False,
+                                            'points': [str(point) for point in annotation['points'][i]],
                                             'frame': str(frame_num),
                                             'label_id': label_id[i],
                                             'group': 0,
@@ -871,7 +896,7 @@ def create_dataframe_with_task_as_keys(pickle_file=None, class_map=None):
     tasks = pickle_file.task_name.unique()
     for task in tasks:
         task_df = pickle_file[pickle_file['task_name'] == task]
-        task_df.dropna(inplace=True)        
+        #task_df.dropna(inplace=True)        
         data_entry = {task: list()}
         int_labels = []
         for index, entry in task_df.iterrows():
@@ -903,7 +928,7 @@ def create_dataframe_with_task_as_keys(pickle_file=None, class_map=None):
             frame_entry['labels'] = int_labels
             frame_entry['img_path'] = img_path
             data_entry[task].append(frame_entry)
-        df = df.append(data_entry, ignore_index=True)
+        df = df.append(data_entry, ignore_index=True)        
     
     return df
 
@@ -967,11 +992,11 @@ def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl', class_map
         uploader.get_tasks()
         tasks = uploader.get_internal_task_list()
         if(cvat_task_name in tasks.keys()):
-            print('task already in cvat, check upload list and cvat')          
-        else:
-            uploader.create_task(task_name=cvat_task_name)
+            #print('task already in cvat, check upload list and cvat')          
+            #else:
+            #uploader.create_task(task_name=cvat_task_name)
             uploader.get_tasks()
-            uploader.upload_data_gt_format(task_name=cvat_task_name, original_task_name=sub_task, annotation_dataframe=task_based_gt_dataframe)
+            #uploader.upload_data_gt_format(task_name=cvat_task_name, original_task_name=sub_task, annotation_dataframe=task_based_gt_dataframe)
             uploader.upload_annotations_gt_format(task_name=cvat_task_name, original_task_name=sub_task, 
                                                     annotation_dataframe=task_based_gt_dataframe, class_map=class_map)
 
