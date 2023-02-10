@@ -28,16 +28,16 @@ class PickledWeedOD():
 
     def purge_bboxes(self, entry, boxes, labels, shape_types):
         #sizes
-        crop_height = np.int(entry['img_height'] * self.height_crop)
-        crop_width = np.int(entry['img_width'] * self.side_crop)
-        crop_stop = np.int(entry['img_width'] - crop_width)
+        crop_height = np.int32(entry['img_height'] * self.height_crop)
+        crop_width = np.int32(entry['img_width'] * self.side_crop)
+        crop_stop = np.int32(entry['img_width'] - crop_width)
 
         #indexes
         crop_img = {
             'xmin': crop_width - 1,
             'xmax': crop_stop - 1,
             'ymin': crop_height - 1,
-            'ymax': np.int(entry['img_height'] - 1)
+            'ymax': np.int32(entry['img_height'] - 1)
         }
         #bbox format: [xmin, ymin, xmax, ymax]
         remove_index = []
