@@ -55,7 +55,7 @@ def main():
         print('make new dataset', flush=True)
         pickledWeed.make_pandas_dataset_with_pre_split(full_hd=settings['full_hd'], excluded_frames=settings['excluded_frames'],
                                                         train_pickle_path=args.dataset_training, val_pickle_path=args.dataset_validation)
-        print('done, pickled pandas frame found at: ' + args.dataset_training + 'and: ' + args.dataset_validation)    
+        print('done, pickled pandas frame found at: ' + args.dataset_training + ' and: ' + args.dataset_validation)    
     
         if(args.no_training):
             print('skip training, just make new dataset')
