@@ -912,7 +912,9 @@ def create_dataframe_with_task_as_keys(pickle_file=None, class_map=None):
                 if(entry['shape_types'] == 'rectange'):
                     frame_entry['points'] = entry['bboxes']
                     frame_entry['shape_types'] = 'rectangle'
-
+            #this will overwrite the extracted box with the original polygon, which is a good thing
+            #since the bbox in the dataframe is for training on a segmentation annotation as a bbox.
+            #For uploading to cvat we want the original segmentation annotation.            
             if(entry['shape_types'] == 'polygon'):
                 frame_entry['points'] = entry['points']
                 frame_entry['shape_types'] = 'polygon'
@@ -1102,7 +1104,7 @@ if __name__ == "__main__":
     parser.add_argument('--dst', type=str, help='destination root folder for cropped images, paths will be preserved', required=False)
     parser.add_argument('--model_path', type=str, help='model path for auto annotation', required=False)
     parser.add_argument('--settings_file', type=str, default='/code/settings_file_gt_train_val.json', help='settings_file', required=False)
-    parser.add_argument('--class_map', type=str, nargs='+', default='', help='class_map', required=False)
+    parser.add_argument('--class_map', type=str, default='default_class_map', help='class_map name in settings file', required=False)
 
     args = parser.parse_args()
 
@@ -1119,8 +1121,8 @@ if __name__ == "__main__":
         #update ground truth annotations with verified auto annotations
         #via rest api, download and then upload annotations if newer date on auto annotations        
         update_gt_with_auto_annotations(gt_match=args.match_pattern_gt, auto_annotation_date=args.auto_annotation_folder)
-    elif(args.upload_pkl):                
-        upload_ground_truths(pickle_file=args.pickle_file, class_map=settings['default_class_map'])
+    elif(args.upload_pkl):                        
+        upload_ground_truths(pickle_file=args.pickle_file, class_map=settings[args.class_map])
     elif(args.whatever):
         do_whatever()
     elif(args.set_complete):
