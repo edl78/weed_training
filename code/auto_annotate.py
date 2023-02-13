@@ -97,6 +97,18 @@ class AutoAnnotations():
             print('task creation failed')
 
 
+    def delete_task(self, task_name):
+        endpoint = 'tasks/' + str(self.tasks[task_name]['id'])
+        
+        r = requests.delete(self.cvat+endpoint, json='', cookies=self.cookies, headers=self.headers)
+        if(r.status_code == 204):                
+            print('deteted task: ' + task_name)
+        else:
+            print(r.reason)
+            print('delete failed for task: ' + task_name)
+
+
+
     def get_tasks(self):
         endpoint = 'tasks'
         #get first list of tasks
@@ -967,13 +979,18 @@ def do_whatever():
                                     cvat_base_url=os.environ['CVAT_BASE_URL'])
     uploader.get_tasks()
     #implement temp function to set a list of tasks in a state
-    settings = None        
-    with open('/code/settings_file_gt_train_val.json') as json_file:            
-        settings = json.load(json_file)
+    #settings = None        
+    #with open('/code/settings_file_gt_train_val.json') as json_file:            
+    #    settings = json.load(json_file)
     
-    for task in settings['first_year_tasks']:
-        uploader.set_task_to_status_complete(task_name=task, job_status='completed')
+    #for task in settings['first_year_tasks']:
+    #    uploader.set_task_to_status_complete(task_name=task, job_status='completed')
     
+    #delete all tasks...
+    task_list = uploader.get_internal_task_list()
+    for task in task_list:        
+        uploader.delete_task(task)
+                
 
 def update_gt_with_auto_annotations(gt_match=None, auto_annotation_date=None):
     uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
