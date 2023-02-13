@@ -12,4 +12,4 @@ services:
       - ./vision:/code/vision
       - ${WEED_DATA_PATH}:/weed_data    
     network_mode: "host"
-    entrypoint: ["python3", "/code/auto_annotate.py", "--upload_pkl", "True", "-p", $VALIDATION_PICKLE_PATH]
+    entrypoint: ["python3", "/code/auto_annotate.py", "--upload_pkl", "True", "-p", $VALIDATION_PICKLE_PATH, "--class_map", "default_class_map"]
