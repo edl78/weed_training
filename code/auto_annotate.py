@@ -391,8 +391,8 @@ class AutoAnnotations():
                 'compressed_chunk_type': 'imageset',
                 'server_files': full_server_paths,
                 'use_zip_chunks': 'true',
-                'use_cache': 'true',
-                'storage_method': 'cache',
+                'use_cache': 'false',
+                'storage_method': 'file_system',
                 'storage': 'share'
                 }
         r = requests.post(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)
@@ -613,8 +613,12 @@ class AutoAnnotations():
                 db_labels = self.class_map
             else:
                 db_labels = class_map
-
+            
+            num_annotations = len(annotations)
+            k = 0
             for annotation in annotations:
+                k += 1
+                print('upload ' + str(k) + 'of ' + str(num_annotations))
                 #get meta info on frame name to number conversion
                 frame_num = self.get_meta_index_of_path(meta=meta, img_path=annotation['img_path'].split('/weed_data/')[-1])
                 if(frame_num < 0):
@@ -1028,7 +1032,7 @@ def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl', class_map
         uploader.get_tasks()
         tasks = uploader.get_internal_task_list()
         if(cvat_task_name in tasks.keys()):
-            print('task already in cvat, check upload list and cvat')          
+            print('task already in cvat, check upload list and cvat for task: ' + cvat_task_name)
         else:
             uploader.create_task(task_name=cvat_task_name)
             uploader.get_tasks()
