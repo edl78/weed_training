@@ -20,13 +20,15 @@ import time
 
 
 class AutoAnnotations():
-    def __init__(self, username, password, cvat_base_url, backup=False):
+    def __init__(self, username, password, cvat_base_url, backup=False, class_map=None):
         self.cvat = cvat_base_url
         self.upload_timeout_sec = 1800
 
-        self.labels = None        
-        with open('/code/labels.json') as json_file:            
-            self.labels = json.load(json_file)
+        if(class_map == None):
+            with open('/code/labels.json') as json_file:            
+                self.labels = json.load(json_file)
+        else:
+            self.labels = [{"name": label, "attributes": []} for label in class_map ]
         
         self.username = username
         self.password = password
@@ -260,7 +262,11 @@ class AutoAnnotations():
         body = {'image_quality':100,
                 'original_chunk_type': 'imageset',
                 'compressed_chunk_type': 'imageset',
-                'server_files': file_list
+                'server_files': file_list,
+                'use_zip_chunks': 'true',
+                'use_cache': 'true',
+                'storage_method': 'cache',
+                'storage': 'share'
                 }
 
         r = requests.post(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)
@@ -309,7 +315,11 @@ class AutoAnnotations():
         body = {'image_quality':100,
                 'original_chunk_type': 'imageset',
                 'compressed_chunk_type': 'imageset',
-                'server_files': full_server_paths
+                'server_files': full_server_paths,
+                'use_zip_chunks': 'true',
+                'use_cache': 'true',
+                'storage_method': 'cache',
+                'storage': 'share'
                 }
         r = requests.post(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)
         if(r.status_code == 202):
@@ -367,7 +377,11 @@ class AutoAnnotations():
         body = {'image_quality':100,
                 'original_chunk_type': 'imageset',
                 'compressed_chunk_type': 'imageset',
-                'server_files': full_server_paths
+                'server_files': full_server_paths,
+                'use_zip_chunks': 'true',
+                'use_cache': 'true',
+                'storage_method': 'cache',
+                'storage': 'share'
                 }
         r = requests.post(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)
         if(r.status_code == 202):
@@ -631,7 +645,10 @@ class AutoAnnotations():
                             print('annotation upload failed')                
 
                 if('shape_types' in annotation.keys()):
-                    if(annotation['shape_types'] == 'polygon'):                    
+                    #handle if one points object is not in a list
+                    if(len(label_id) == 1):
+                        annotation['points'] = [annotation['points']]
+                    if(annotation['shape_types'] == 'polygon'):                         
                         for i in range(len(label_id)):
                             body = {
                                 'version': 1, 
@@ -982,7 +999,7 @@ def validate_img_paths(dataframe=None, folder=None):
 
 def upload_ground_truths(pickle_file='/train/pickled_weed/pd_val.pkl', class_map=None):
     uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
-                                    cvat_base_url=os.environ['CVAT_BASE_URL'])
+                                    cvat_base_url=os.environ['CVAT_BASE_URL'], class_map=class_map)
     if(class_map is None):
         class_map = uploader.get_class_map()
 
@@ -1034,7 +1051,7 @@ def upload_annotations_xml(folder=None):
 
 def upload_auto_annotation_task(folder=None, task_name=None, class_map=None):
     uploader = AutoAnnotations(username=os.environ['CVAT_USERNAME'], password=os.environ['CVAT_PASSWORD'], 
-                                    cvat_base_url=os.environ['CVAT_BASE_URL'])
+                                    cvat_base_url=os.environ['CVAT_BASE_URL'], class_map=class_map)
 
     annotation_dataframe = pandas.read_pickle(folder+'/auto_annotation.pkl')
     uploader.create_task(task_name=task_name)            
