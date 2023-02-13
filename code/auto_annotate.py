@@ -657,10 +657,10 @@ class AutoAnnotations():
                             print('annotation upload failed')                
 
                 if('shape_types' in annotation.keys()):
-                    #handle if one points object is not in a list
-                    if(len(label_id) == 1):
-                        annotation['points'] = [annotation['points']]
-                    if(annotation['shape_types'] == 'polygon'):                         
+                    #handle if one points object is not in a list                    
+                    if(annotation['shape_types'] == 'polygon'):
+                        if(len(label_id) == 1):
+                            annotation['points'] = [annotation.pop('points')]
                         for i in range(len(label_id)):
                             body = {
                                 'version': 1, 
