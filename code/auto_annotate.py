@@ -275,9 +275,10 @@ class AutoAnnotations():
                 'original_chunk_type': 'imageset',
                 'compressed_chunk_type': 'imageset',
                 'server_files': file_list,
-                'use_zip_chunks': 'true',
+                'use_zip_chunks': 'false',
+                'copy_data': 'false',
                 'use_cache': 'true',
-                'storage_method': 'cache',
+                'storage_method': 'file_system',
                 'storage': 'share'
                 }
 
@@ -328,9 +329,10 @@ class AutoAnnotations():
                 'original_chunk_type': 'imageset',
                 'compressed_chunk_type': 'imageset',
                 'server_files': full_server_paths,
-                'use_zip_chunks': 'true',
+                'use_zip_chunks': 'false',
+                'copy_data': 'false',
                 'use_cache': 'true',
-                'storage_method': 'cache',
+                'storage_method': 'file_system',
                 'storage': 'share'
                 }
         r = requests.post(self.cvat+endpoint, json=body, cookies=self.cookies, headers=self.headers)
@@ -390,8 +392,9 @@ class AutoAnnotations():
                 'original_chunk_type': 'imageset',
                 'compressed_chunk_type': 'imageset',
                 'server_files': full_server_paths,
-                'use_zip_chunks': 'true',
-                'use_cache': 'false',
+                'use_zip_chunks': 'false',
+                'copy_data': 'false',
+                'use_cache': 'true',
                 'storage_method': 'file_system',
                 'storage': 'share'
                 }
@@ -618,7 +621,7 @@ class AutoAnnotations():
             k = 0
             for annotation in annotations:
                 k += 1
-                print('upload ' + str(k) + 'of ' + str(num_annotations))
+                print('upload ' + str(k) + ' of ' + str(num_annotations))
                 #get meta info on frame name to number conversion
                 frame_num = self.get_meta_index_of_path(meta=meta, img_path=annotation['img_path'].split('/weed_data/')[-1])
                 if(frame_num < 0):
