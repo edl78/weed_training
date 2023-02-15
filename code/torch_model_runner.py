@@ -79,9 +79,9 @@ def main():
                                 fake_dataset_len=settings['fake_dataset_len'])
             
             trainer.hpo()
-            print('HPO done, run training again without the run_hpo setting to train with new parameters, \
-             also make sure to activate use_settings_file to use the newly found parameters otherwise manually \
-             insert these in the training settings file')
+            print("HPO done, run training again with run_hpo=0 to train with new parameters")
+            print("also make sure to activate use_settings_file to use the newly found parameters")
+            print("alternatively, manually insert HPO parameters in the training settings file")
         else:
             trainer = ModelTrainer(dataset_path=dataset, 
                                     dataset_test_path=dataset_test,
