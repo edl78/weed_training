@@ -114,11 +114,16 @@ class ModelTrainer_overfit():
         self.model.to(self.device)
         
         params = [p for p in self.model.parameters() if p.requires_grad]
-        trial_lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
-        trial_momentum = trial.suggest_float("momentum", 1e-1, 9e-1, log=True)
-        trial_step_size = trial.suggest_int('step_size', 1, 5, log=False)
-        trial_gamma = trial.suggest_float("gamma", 1e-2, 9e-1, log=True)
-        trial_weight_decay = trial.suggest_float("weight_decay", 1e-2, 9e-1, log=True)
+        trial_lr = trial.suggest_float("lr", self.settings['hpo_parameters']['lr'][0], 
+                                        self.settings['hpo_parameters']['lr'][1], log=True)
+        trial_momentum = trial.suggest_float("momentum", self.settings['hpo_parameters']['momentum'][0], 
+                                            self.settings['hpo_parameters']['momentum'][1], log=True)
+        trial_step_size = trial.suggest_int('step_size', self.settings['hpo_parameters']['step_size'][0], 
+                                            self.settings['hpo_parameters']['step_size'][1], log=False)
+        trial_gamma = trial.suggest_float("gamma", self.settings['hpo_parameters']['gamma'][0], 
+                                            self.settings['hpo_parameters']['gamma'][1], log=True)
+        trial_weight_decay = trial.suggest_float("weight_decay", self.settings['hpo_parameters']['weight_decay'][0], 
+                                                self.settings['hpo_parameters']['weight_decay'][1], log=True)
         
         # construct an optimizer
         optimizer = optim.SGD(params, 
