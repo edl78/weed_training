@@ -1,5 +1,5 @@
 {
-    "full_hd": 0,
+    "full_hd": 1,
     "variants": [
         "resnet18"
     ],
@@ -44,12 +44,38 @@
         "run_hpo": 1,
         "use_settings_file": 0
     },
-    "fake_dataset_len": 4,
+    "save_dir": "/train/pickled_weed",
+    "writer_dir": "/train/runs",
+    "dataset_dir": "/weed_data",
+    "hpo_parameters": {
+        "lr": [
+            0.0000001,
+            0.01
+        ],
+        "weight_decay": [
+            0.00001,
+            0.9
+        ],
+        "momentum": [
+            0.1,
+            0.9
+        ],
+        "step_size": [
+            1,
+            5
+        ],
+        "gamma": [
+            0.01,
+            0.9
+        ]
+    },
+    "fake_dataset_len": 10,
     "max_train_epochs": 10000,
     "max_plateau_count": 1000,
     "search_epochs": 30,
     "num_initial_data_points": "infer",
     "max_num_trials": 32,
+    "hpo_timeout": 6000,
     "annotations_list": [
         "Seg_FieldData_20200520145736_3R_GH070072",
         "Seg_FieldData_20200520145736_3R_GH020072",
@@ -234,31 +260,6 @@
         "FieldData_20190604131554_2L_GH020047",
         "FieldData_20190604131554_3R_GH040049"
     ],    
-    "save_dir": "/train/pickled_weed",
-    "writer_dir": "/train/runs",
-    "dataset_dir": "/weed_data",
-    "sherpa_parameters": {
-        "lr": [
-            0.0000001,
-            0.01
-        ],
-        "weight_decay": [
-            0.00001,
-            0.9
-        ],
-        "momentum": [
-            0.1,
-            0.9
-        ],
-        "step_size": [
-            1,
-            5
-        ],
-        "gamma": [
-            0.01,
-            0.9
-        ]
-    },
     "default_class_map": [
         "Background",
         "Black bindweed", 

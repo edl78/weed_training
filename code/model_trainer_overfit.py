@@ -7,7 +7,9 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, FasterRC
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn as nn
 
-import sherpa
+#import sherpa
+import optuna
+from optuna.trial import TrialState
 import json
 
 import numpy as np
@@ -52,8 +54,10 @@ class ModelTrainer_overfit():
             self.dataset_test, batch_size=2, shuffle=False, num_workers=1, collate_fn=self.my_collate, drop_last=True)
        
         if(self.settings[variant]['run_hpo'] == True):
-            self.sherpa_parameters = self.define_sherpa_params()
-            self.study = self.setup_study(self.settings)
+            #self.sherpa_parameters = self.define_sherpa_params()
+            #self.hpo_parameters = self.define_hpo_params()
+            #self.study = self.setup_study(self.settings)
+            #self.study = self.setup_hpo_study(self.settings)
             self.trial = None            
             self.trial_num = 0            
         else:
@@ -98,47 +102,72 @@ class ModelTrainer_overfit():
                     lr_scheduler.step()
         
 
-
-    def sherpa_hpo(self):
-        print('Run Sherpa HPO search for variant: ' + self.variant)
-        self.trial_num = 0
-        for trial in self.study:
-            self.trial = trial
-            if(self.variant == "retina_net"):
-                self.model = self.get_retina_model_with_args(num_classes=self.num_classes)
-            else:
-                self.model = self.get_model_with_args(model_name=self.variant, num_classes=self.num_classes)
-                
-            self.model.to(self.device)
-            # construct an optimizer
-            params = [p for p in self.model.parameters() if p.requires_grad]
-            optimizer = optim.SGD(params, lr=trial.parameters['lr'],
-                                momentum=trial.parameters['momentum'],
-                                weight_decay=trial.parameters['weight_decay'])
+    def hpo_trial(self, trial):
+        print('Run HPO search for variant: ' + self.variant)
+        self.trial_num = 0        
+        
+        if(self.variant == "retina_net"):
+            self.model = self.get_retina_model_with_args(num_classes=self.num_classes)
+        else:
+            self.model = self.get_model_with_args(model_name=self.variant, num_classes=self.num_classes)
             
-            # and a learning rate scheduler
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                        step_size=trial.parameters['step_size'],
-                                                        gamma=trial.parameters['gamma'])
+        self.model.to(self.device)
+        
+        params = [p for p in self.model.parameters() if p.requires_grad]
+        trial_lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
+        trial_momentum = trial.suggest_float("momentum", 1e-1, 9e-1, log=True)
+        trial_step_size = trial.suggest_int('step_size', 1, 5, log=False)
+        trial_gamma = trial.suggest_float("gamma", 1e-2, 9e-1, log=True)
+        trial_weight_decay = trial.suggest_float("weight_decay", 1e-2, 9e-1, log=True)
+        
+        # construct an optimizer
+        optimizer = optim.SGD(params, 
+                              lr=trial_lr,
+                              momentum=trial_momentum,
+                              weight_decay=trial_weight_decay)
+        
+        # and a learning rate scheduler
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                                                    step_size=trial_step_size,
+                                                    gamma=trial_gamma)
+        
+        for epoch in range(self.settings['search_epochs']):
+            avg_loss = self.train_run(epoch=epoch, optimizer=optimizer,
+                            variant=self.variant, trial_num=self.trial_num, trial=trial)
+            self.eval_run(optimizer=optimizer, epoch=epoch,
+                            trial=trial, trial_num=self.trial_num)
+            if(lr_scheduler is not None):
+                lr_scheduler.step()
             
-            for epoch in range(self.settings['search_epochs']):
-                self.train_run(epoch=epoch, optimizer=optimizer,
-                                variant=self.variant, trial_num=self.trial_num)
-                self.eval_run(optimizer=optimizer, epoch=epoch, study=self.study,
-                                trial=trial, trial_num=self.trial_num)        
-                if(lr_scheduler is not None):
-                    lr_scheduler.step()
-               
-                
-            self.study.finalize(trial)
-            self.trial_num += 1
+            
+        #self.study.finalize(trial)
+        self.trial_num += 1
 
-        self.optimal_settings = self.study.get_best_result()
+        return avg_loss        
+
+
+    def hpo(self):
+        study = optuna.create_study(storage="sqlite:///db.sqlite3:8087",
+                                    direction="minimize")
+        study.optimize(self.hpo_trial, n_trials=self.settings['max_num_trials'], timeout=self.settings['hpo_timeout'])
+        
+        print("Best trial:")
+        print('Best value: ' + str(study.best_value))
+        trial = study.best_trial
+        trial_params = dict()
+        trial_params['best_value'] = study.best_value
+        print("  Params: ")
+        for key, value in trial.params.items():
+            print("    {}: {}".format(key, value))
+            trial_params[key] = value
+
+        self.optimal_settings = trial_params
         with open('/train/' + self.variant + '_settings.json', 'w') as outfile:
             json.dump(self.optimal_settings, outfile, cls=NumpyEncoder)
-        
 
-    def train_run(self, epoch, optimizer, variant, trial_num=None):
+
+
+    def train_run(self, epoch, optimizer, variant, trial_num=None, trial=None):
         self.model.train()
         print('epoch: ' + str(epoch+1))
         torch.set_grad_enabled(True)
@@ -151,7 +180,7 @@ class ModelTrainer_overfit():
         #for m in self.model.modules():
         #    if isinstance(m, nn.BatchNorm2d):
         #        m.track_running_stats=False
-
+        
         for i, data in enumerate(self.data_loader, 0):
             print(i)
             inputs, targets, img_path = data        
@@ -172,56 +201,34 @@ class ModelTrainer_overfit():
             losses = sum(loss for loss in loss_dict.values())
             running_loss += losses.item()
 
-            if(self.study is not None and self.trial is not None):
-                running_loss_study += losses.item()
+            running_loss_study += losses.item()
 
             losses.backward()
             optimizer.step()
-
-            if((i+1)%(num_meas)==0 and self.study is not None):
-                #average over more datapoints to lower noise
-                running_loss_study /= num_meas
-                print('study eval loss: ', running_loss_study)
-                self.study.add_observation(trial=self.trial,
-                                iteration=((i+1)/num_meas+len(self.data_loader)*epoch/num_meas),
-                                    objective=running_loss_study)
-                running_loss_study = 0
             
-            if (self.study is not None and self.study.should_trial_stop(self.trial)):
-                break
+            
+            # Handle pruning based on the intermediate value.
+            if trial.should_prune():
+                raise optuna.exceptions.TrialPruned()
 
             if((i+1)%(num_meas)==0):
                 running_loss /= num_meas
                 self.writer.add_scalar(self.variant + '/training loss, trial:' + str(trial_num),
                                 running_loss, ((i+1)/num_meas+len(self.data_loader)*epoch/num_meas))
                 print('train losses sum: ' + str(running_loss))
-                if(self.study == None):
-                    #only count plateau when in final training                
-                    self.plateau_cnt += 1
-                    print('plateau count: ' + str(self.plateau_cnt))
-                    #just save model after hyper parameter search and average loss over whole epoch
-                    #save model if loss is lowest so far
-                    if(running_loss < self.best_loss):
-                        self.best_loss = running_loss
-                        print('save best model with loss: ', running_loss)
-                        self.model.train()
-                        torch.save(self.model, '/train/' + self.variant + '_model.pth')
-                        self.plateau_cnt = 0
-                
-                    #stop?
-                    if(self.plateau_cnt == self.settings['max_plateau_count']):                    
-                        self.stop_training = True
-                        print('stopp training, no test performance increase')
-
                 running_loss = 0
+        
+        avg_loss = (running_loss_study / num_meas)
+        trial.report(avg_loss, epoch)    
+        
+        return avg_loss
 
 
-    def eval_run(self, optimizer, epoch, study=None, trial=None, trial_num=None):
+    def eval_run(self, optimizer, epoch, trial=None, trial_num=None):
         #complicated with metrics for eval, so run in train
         #and look at loss with zero_grad to not effect weights
         #some layers (batch norm) may be different in eval but
         #hopefully not to much.
-        running_loss_study = 0
         running_loss = 0 
         num_meas = len(self.data_loader_test)
 
@@ -240,48 +247,16 @@ class ModelTrainer_overfit():
                 inputs_gpu.append(im.to(self.device))                    
 
             loss_dict = self.model(inputs_gpu, targets_gpu)            
-            losses = sum(loss for loss in loss_dict.values())
-            
-            if(study is not None and trial is not None):
-                running_loss_study += losses.item()                
+            losses = sum(loss for loss in loss_dict.values())        
 
             running_loss += losses.item()
                         
-            #if((i+1)%(num_meas)==0 and study is not None):
-            #    #average over more datapoints to lower noise
-            #    running_loss_study /= num_meas
-            #    print('study eval loss: ', running_loss_study)
-            #    study.add_observation(trial=trial,
-            #                    iteration=((i+1)/num_meas+len(self.data_loader_test)*epoch/num_meas),
-            #                        objective=running_loss_study)
-            #    running_loss_study = 0
-            #
-            #if (study is not None and study.should_trial_stop(trial)):
-            #    break
-
             if((i+1)%(num_meas)==0):
                 running_loss /= num_meas 
                 print('validation loss: ', running_loss)
                 self.writer.add_scalar(self.variant + '/validation loss, trial:' + str(trial_num),
                                 running_loss, ((i+1)/num_meas+len(self.data_loader_test)*epoch/num_meas))
 
-                #if(study == None):
-                #    #only count plateau when in final training                
-                #    self.plateau_cnt += 1
-                #    #just save model after hyper parameter search and average loss over whole epoch
-                #    #save model if loss is lowest so far
-                #    if(running_loss < self.best_loss):
-                #        best_loss = running_loss
-                #        print('save best model with loss: ', running_loss)
-                #        self.model.train()
-                #        torch.save(self.model, '/train/' + self.variant + '_model.pth')
-                #        self.plateau_cnt = 0
-                #
-                #    #stop?
-                #    if(self.plateau_cnt == self.settings['max_plateau_count']):                    
-                #        stop_training = True
-                #        print('stopp training, no validation performance increase')
-                
                 running_loss = 0            
 
 
@@ -316,35 +291,6 @@ class ModelTrainer_overfit():
         targets = [item[1] for item in batch]
         img_paths = [item[2] for item in batch]
         return [data, targets, img_paths]
-
-
-    def setup_study(self, settings):
-        algorithm = sherpa.algorithms.GPyOpt(num_initial_data_points=self.settings['num_initial_data_points'],
-                                            verbosity=True,
-                                            max_num_trials=self.settings['max_num_trials'])
-        return sherpa.Study(parameters=self.sherpa_parameters,
-                            algorithm=algorithm,
-                            lower_is_better=True)
-
-
-    def define_sherpa_params(self):    
-        params = self.settings['sherpa_parameters']
-        sherpa_parameters = [sherpa.Continuous(name='lr',
-                                            range=params['lr'],
-                                            scale='log'),
-                        sherpa.Continuous(name='weight_decay',
-                                            range=params['weight_decay'],
-                                            scale='log'),
-                        sherpa.Continuous(name='momentum',
-                                            range=params['momentum'],
-                                            scale='log'),
-                        sherpa.Discrete(name='step_size',
-                                        range=params['step_size'],
-                                        scale='linear'),
-                        sherpa.Continuous(name='gamma',
-                                        range=params['gamma'],
-                                        scale='log')]
-        return sherpa_parameters
 
     
     def get_model_with_args(self, model_name='resnet50', num_classes=3):

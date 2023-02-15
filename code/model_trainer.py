@@ -3,14 +3,11 @@ import torch
 import torch.optim as optim
 import torchvision
 from torchvision import transforms
-#pytorch/vision/blob/main/references/detection/transforms.py
-#clone to vision on host, checkout v0.11.1, map to /code/vision
 import vision.references.detection.transforms as VT
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, FasterRCNN
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn as nn
 
-import sherpa
 import json
 
 import numpy as np
@@ -54,17 +51,12 @@ class ModelTrainer():
 
         # define training and validation data loaders
         self.data_loader = torch.utils.data.DataLoader(
-            self.dataset, batch_size=4, shuffle=True, num_workers=2, collate_fn=self.my_collate, drop_last=True)
+            self.dataset, batch_size=2, shuffle=True, num_workers=2, collate_fn=self.my_collate, drop_last=True)
         
         self.data_loader_test = torch.utils.data.DataLoader(
-            self.dataset_test, batch_size=4, shuffle=False, num_workers=2, collate_fn=self.my_collate, drop_last=True)
+            self.dataset_test, batch_size=2, shuffle=False, num_workers=2, collate_fn=self.my_collate, drop_last=True)
        
-        if(self.settings[variant]['run_hpo'] == True):
-            self.sherpa_parameters = self.define_sherpa_params()
-            self.study = self.setup_study(self.settings)            
-            self.trial_num = 0            
-        else:
-            self.optimal_settings = self.settings[variant]['optimal_hpo_settings']
+        self.optimal_settings = self.settings[variant]['optimal_hpo_settings']
 
 
     def train_model(self, settings_file=None):
@@ -101,44 +93,6 @@ class ModelTrainer():
             if(lr_scheduler is not None):
                 lr_scheduler.step()
 
-
-    def sherpa_hpo(self):
-        print('Run Sherpa HPO search for variant: ' + self.variant)
-        self.trial_num = 0
-        for trial in self.study:
-            if(self.variant == "retina_net"):
-                self.model = self.get_retina_model_with_args(num_classes=self.num_classes)
-            else:
-                self.model = self.get_model_with_args(model_name=self.variant, num_classes=self.num_classes)
-                
-            self.model.to(self.device)
-            # construct an optimizer
-            params = [p for p in self.model.parameters() if p.requires_grad]
-            optimizer = optim.SGD(params, lr=trial.parameters['lr'],
-                                momentum=trial.parameters['momentum'],
-                                weight_decay=trial.parameters['weight_decay'])
-            
-            # and a learning rate scheduler
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                        step_size=trial.parameters['step_size'],
-                                                        gamma=trial.parameters['gamma'])
-            
-            for epoch in range(self.settings['search_epochs']):
-                self.train_run(epoch=epoch, optimizer=optimizer,
-                                variant=self.variant, trial_num=self.trial_num)
-                self.eval_run(optimizer=optimizer, epoch=epoch, study=self.study,
-                                trial=trial, trial_num=self.trial_num)        
-                if(lr_scheduler is not None):
-                    lr_scheduler.step()
-               
-                
-            self.study.finalize(trial)
-            self.trial_num += 1
-
-        self.optimal_settings = self.study.get_best_result()
-        with open('/train/' + self.variant + '_settings.json', 'w') as outfile:
-            json.dump(self.optimal_settings, outfile, cls=NumpyEncoder)
-        
 
     def train_run(self, epoch, optimizer, variant, trial_num=None):
         self.model.train()
@@ -178,8 +132,8 @@ class ModelTrainer():
 
             if((i+1)%(num_meas)==0):
                 running_loss /= num_meas
-                self.writer.add_scalar(self.variant + '/training loss, trial:' + str(trial_num),
-                                running_loss, ((i+1)/num_meas+len(self.data_loader)*epoch/num_meas))
+                self.writer.add_scalar(self.variant + '/training loss',
+                                running_loss, epoch)
                 print('train losses sum: ' + str(running_loss))
                 running_loss = 0
 
@@ -191,7 +145,7 @@ class ModelTrainer():
         #hopefully not to much.
         running_loss_study = 0
         running_loss = 0 
-        num_meas = len(self.data_loader_test)
+        num_meas = int(len(self.data_loader_test))
 
         for m in self.model.modules():
             if isinstance(m, nn.BatchNorm2d):
@@ -210,47 +164,33 @@ class ModelTrainer():
             loss_dict = self.model(inputs_gpu, targets_gpu)            
             losses = sum(loss for loss in loss_dict.values())
             
-            if(study is not None and trial is not None):
-                running_loss_study += losses.item()                
-
             running_loss += losses.item()
                         
-            if((i+1)%(num_meas)==0 and study is not None):
-                #average over more datapoints to lower noise
-                running_loss_study /= num_meas
-                print('study eval loss: ', running_loss_study)
-                study.add_observation(trial=trial,
-                                iteration=((i+1)/num_meas+len(self.data_loader_test)*epoch/num_meas),
-                                    objective=running_loss_study)
-                running_loss_study = 0
-            
-            if (study is not None and study.should_trial_stop(trial)):
-                break
 
             if((i+1)%(num_meas)==0):
                 running_loss /= num_meas 
                 print('validation loss: ', running_loss)
-                self.writer.add_scalar(self.variant + '/validation loss, trial:' + str(trial_num),
-                                running_loss, ((i+1)/num_meas+len(self.data_loader_test)*epoch/num_meas))
+                self.writer.add_scalar(self.variant + '/validation loss',
+                                running_loss, epoch)
 
-                if(study == None):
-                    #only count plateau when in final training                
-                    self.plateau_cnt += 1
-                    print('plateau count: ' + str(self.plateau_cnt))
-                    #just save model after hyper parameter search and average loss over whole epoch
-                    #save model if loss is lowest so far
-                    if(running_loss < self.best_loss):
-                        self.best_loss = running_loss
-                        print('save best model with loss: ', running_loss)
-                        self.model.train()
-                        torch.save(self.model, '/train/' + self.variant + '_model.pth')
-                        self.plateau_cnt = 0
                 
-                    #stop?
-                    if(self.plateau_cnt == self.settings['max_plateau_count']):                    
-                        self.stop_training = True
-                        print('stopp training, no validation performance increase')
-                
+                #only count plateau when in final training                
+                self.plateau_cnt += 1
+                print('plateau count: ' + str(self.plateau_cnt))
+                #just save model after hyper parameter search and average loss over whole epoch
+                #save model if loss is lowest so far
+                if(running_loss < self.best_loss):
+                    self.best_loss = running_loss
+                    print('save best model with loss: ', running_loss)
+                    self.model.train()
+                    torch.save(self.model, '/train/' + self.variant + '_model.pth')
+                    self.plateau_cnt = 0
+            
+                #stop?
+                if(self.plateau_cnt == self.settings['max_plateau_count']):                    
+                    self.stop_training = True
+                    print('stopp training, no validation performance increase')
+            
                 running_loss = 0            
 
 
@@ -287,35 +227,6 @@ class ModelTrainer():
         return [data, targets, img_paths]
 
 
-    def setup_study(self, settings):
-        algorithm = sherpa.algorithms.GPyOpt(num_initial_data_points=self.settings['num_initial_data_points'],
-                                            verbosity=True,
-                                            max_num_trials=self.settings['max_num_trials'])
-        return sherpa.Study(parameters=self.sherpa_parameters,
-                            algorithm=algorithm,
-                            lower_is_better=True)
-
-
-    def define_sherpa_params(self):    
-        params = self.settings['sherpa_parameters']
-        sherpa_parameters = [sherpa.Continuous(name='lr',
-                                            range=params['lr'],
-                                            scale='log'),
-                        sherpa.Continuous(name='weight_decay',
-                                            range=params['weight_decay'],
-                                            scale='log'),
-                        sherpa.Continuous(name='momentum',
-                                            range=params['momentum'],
-                                            scale='log'),
-                        sherpa.Discrete(name='step_size',
-                                        range=params['step_size'],
-                                        scale='linear'),
-                        sherpa.Continuous(name='gamma',
-                                        range=params['gamma'],
-                                        scale='log')]
-        return sherpa_parameters
-
-    
     def get_model_with_args(self, model_name='resnet50', num_classes=3):
         #should get the same as below...
         from torchvision.models.detection.backbone_utils import resnet_fpn_backbone

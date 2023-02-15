@@ -78,7 +78,7 @@ def main():
                                 class_map=class_map,
                                 fake_dataset_len=settings['fake_dataset_len'])
             
-            trainer.sherpa_hpo()
+            trainer.hpo()
             print('HPO done, run training again without the run_hpo setting to train with new parameters, \
              also make sure to activate use_settings_file to use the newly found parameters otherwise manually \
              insert these in the training settings file')
