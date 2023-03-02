@@ -149,7 +149,7 @@ class ModelTrainer_overfit():
     def hpo(self):
         study = optuna.create_study(storage="sqlite:///db.sqlite3:8087",
                                     direction="minimize")
-        study.optimize(self.hpo_trial, n_trials=self.settings['max_num_trials'], timeout=self.settings['hpo_timeout'])
+        study.optimize(self.hpo_trial, n_trials=self.settings['max_num_trials'])
         
         print("Best trial:")
         print('Best value: ' + str(study.best_value))
