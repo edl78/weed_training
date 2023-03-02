@@ -4,7 +4,7 @@ For an overview of the Openweeds project and some background on this documentati
 
 ## Architecture
 - The code depends on having a mongodb instance with all annotation data collected from CVAT, meaning weed_annotations must first be started (unless going for *fast-track to training*, see [obdb_docs](https://github.com/edl78/obdb_docs).
-- Bayesian optimization performed via Sherpa for hyperparameters.
+- Bayesian optimization performed via Optuna for hyperparameters.
 - Can output a number of networks ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152'] or any combination of pytorch available networks. As a default the code is configured to train a resnet18 for the weed detection task.
 - If fast track method is chosen, see [obdb_docs](https://github.com/edl78/obdb_docs), weed_training is stand alone and depends only on the image data and pickle files.
 
@@ -22,15 +22,19 @@ For an overview of the Openweeds project and some background on this documentati
 - There is an optional WASP(**TBD: add link**) contributed segmentation dataset, it can be uploaded to cvat via `docker-compose -f docker-compose-upload-wasp-segmentation-data-cvat.yml up` and assumes the data folder with images named wasp is located in the fielddata folder.
 
 ### Training
-All training depend on pickle files. These can be created (see Auto-annotations section below) or found in the `artefacts` folder. To use the downloaded pickle files, they must be moved from the artefacts folder to the train folder according the set path variables below (default `/train/pickled_weed`). The path to the pickle files to be used can be set by changing the variables `TRAINING_PICKLE_PATH` and `VALIDATION_PICKLE_PATH` in the `.env` file. *Important to note that these paths are not host paths but rather paths as seen from the inside of the container using them.* Thus any pickle file must be found somewhere under the `train` folder as mounted by the docker-compose file.
+All training depend on pickle files. These can be created (see Auto-annotations section below) or found in the `/train/pickled_weed/` folder. The path to the pickle files to be used can be set by changing the variables `TRAINING_PICKLE_PATH` and `VALIDATION_PICKLE_PATH` in the `.env` file. *Important to note that these paths are not host paths but rather paths as seen from the inside of the container using them.* Thus any pickle file must be found somewhere under the `train` folder as mounted by the docker-compose file.
 
 To start training, the main docker-compose is used, run: `docker-compose up -d` (i.e. run without specific docker-compose file, run without -d for console output). To run interactive `run_training.sh` can be used to run interactive if so desired. Fill in missing usernames and passwords in the `run_training.sh` shell script before starting it.
 
 The trained networks can then be found in the mapped folder `train` or `/train` in the container. A file with optimal training parameters is also located together with the network.
 
-Bayesian hyper parameter search is implemented with the Sherpa library. Use this by setting `run_hpo`: 1 in `code/settings_file_gt_train_val.json` under respective network. 
+Bayesian hyper parameter search is implemented with the Optuna library. Use this by setting `run_hpo`: 1 in `code/settings_file_gt_train_val.json` under respective network. 
 
-Watch the hyper parameter tuning on localhost:8880 and the training and validation losses for all runs on localhost:6006 after pointing your local tensorboard to code/runs/name_of_the_run
+To start the Optuna-dashboard:
+- Run `docker ps` to list the active containers. Use the `CONTAINER ID` for the `training:v2 image` and
+- Run `docker exec -it CONTAINER ID /bin/bash` which will give you a terminal to the container running the Optuna HPO.
+- inside the container termainal run (choose your own prefered port number): `optuna-dashboard --port 8084 --net=host sqlite:///train/db.sqlite3:8087`
+-   Watch the hyper parameter tuning on localhost:8084 or your port of choice and the training and validation losses for all runs on localhost:6006 after pointing your local tensorboard to code/runs/name_of_the_run
 
 
 
@@ -85,7 +89,7 @@ Watch the hyper parameter tuning on localhost:8880 and the training and validati
     "save_dir": "/train/pickled_weed",
     "writer_dir": "/train/runs",
     "dataset_dir": "/weed_data",
-    "sherpa_parameters": {
+    "hpo_parameters": {
         "lr": [0.000005, 0.001],
         "weight_decay": [0.00001, 0.9],
         "momentum": [0.1, 0.9],
@@ -145,7 +149,8 @@ There are two ways to load annotations into MongoDB.
 ### Metrics
 - Copy trained model to `/train`. For simple test copy `resnet18_model.pth` from `artefacts` folder to `/train`, otherwise use your own model. Path to model can also be set in `docker-compose-metrics.yml`. Change other parameters as required.
 - Run with: `docker-compose -f docker-compose-metrics.yml up`
-- Output in `train/class_metrics.json` file which is used to produce graphs default put under `train/result_figures/` with a number of SVG files.
+- Output in `train/AveragePrecision_YY_MM_DD_HH_MM_SS.json`, where `YY_MM_DD_HH_MM_SS` is the date. 
+- TODO: Remove other metrics? class_metrics.json which is used to produce graphs default put under `train/result_figures/` with a number of SVG files.
 
 
 ## Auto annotation - life-cycle of annotations

@@ -69,7 +69,7 @@
             0.9
         ]
     },
-    "fake_dataset_len": 10,
+    "fake_dataset_len": 20,
     "max_train_epochs": 10000,
     "max_plateau_count": 1000,
     "search_epochs": 30,
@@ -312,8 +312,7 @@
     "metrics_confidence_range_small": [0.70],
     "metrics_iou_range_small": [0.50],
     "confidence_threshold_save_img": 0.70,
-    "excluded_frames": [
-        "fielddata/tractor-32-cropped/20200603102414/1L/GH010353/GH010353frame0050.png"
+    "excluded_frames": [        
     ]
 }
 
