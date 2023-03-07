@@ -25,12 +25,12 @@ def get_num_examples_per_class_in_dataset(dataset):
 
 def main():
     parser = argparse.ArgumentParser(description='training file for weeds, Sherpa is used for Bayesian HPO')
-    parser.add_argument('-f', '--settings_file', type=str, default='/code/settings_file_gt_train_val.json', help='settings file for all settings regarding the networks to train', required=False)
+    parser.add_argument('-f', '--settings_file', type=str, default='/code/settings_file_train_val.json', help='settings file for all settings regarding the networks to train', required=False)
     parser.add_argument('-t', '--dataset_training', type=str, default='/train/pickled_weed/pd_train_full_hd.pkl', help='training pickle file', required=False)
     parser.add_argument('-v', '--dataset_validation', type=str, default='/train/pickled_weed/pd_val_full_hd.pkl', help='validation pickle file', required=False)
     parser.add_argument('-m', '--make_new_dataset', type=bool, default=False, help='set to True to make a new pickle dataset', required=False)
     parser.add_argument('--no_training', type=bool, default=False, help='set to True to skip training when only a new dataset is required', required=False)
-    parser.add_argument('-l', '--list_of_tasks', type=str, default='annotations_list_gt', help='settings file list name to build pickle file from', required=False)
+    parser.add_argument('-l', '--list_of_tasks', type=str, default='annotations_list_full_hd', help='settings file list name to build pickle file from', required=False)
     args = parser.parse_args()    
 
     with open(args.settings_file) as json_file:            

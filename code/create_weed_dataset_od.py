@@ -343,9 +343,9 @@ class PickledWeedOD():
 def main():
     print('create pandas dataset of weeds')
     save_dir = '/pickled_weed'
-    #annotations_list = ['FieldData 20200520145736 1L GH020068',
+    #annotations_list_4k = ['FieldData 20200520145736 1L GH020068',
     #                    'FieldData 20200520145736 3R GH020072']    
-    annotations_list = ['FieldData 20200520145736 1L GH020068']    
+    annotations_list_4k = ['FieldData 20200520145736 1L GH020068']    
     pickledWeed = PickledWeedOD(task_name_list=annotations_list, save_dir=save_dir, dataset_dir='/weed_data', mongo_port=27018)
     pickledWeed.make_pandas_dataset()
     print('done, pickled pandas frame found at: ' + save_dir)

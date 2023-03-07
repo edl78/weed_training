@@ -240,7 +240,7 @@ def automatic_per_class_metric_test(model_path=None, pickle_file=None, save_imgs
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test the model and get metrics')
-    parser.add_argument('-f', '--settings_file', type=str, default='/code/settings_file_gt_train_val.json', help='settings file for all settings regarding the networks to train', required=False)
+    parser.add_argument('-f', '--settings_file', type=str, default='/code/settings_file_train_val.json', help='settings file for all settings regarding the networks to train', required=False)
     parser.add_argument('-m', '--model_path', type=str, default='/train/resnet18_model.pth', help='Pytorch model file path', required=False)
     parser.add_argument('-p', '--pickle_path', type=str, default='/train/pickled_weed/pd_val_full_hd.pkl', help='validation pickle file path', required=False)
     parser.add_argument('-s', '--save_path', type=str, default='/train', help='path to save metrics json file and graphs', required=False)

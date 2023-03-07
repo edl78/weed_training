@@ -69,14 +69,14 @@
             0.9
         ]
     },
-    "fake_dataset_len": 20,
+    "fake_dataset_len": 640,
     "max_train_epochs": 10000,
     "max_plateau_count": 1000,
     "search_epochs": 30,
     "num_initial_data_points": "infer",
     "max_num_trials": 32,
     "hpo_timeout": 6000,
-    "annotations_list": [
+    "annotations_list_4k": [
         "Seg_FieldData_20200520145736_3R_GH070072",
         "Seg_FieldData_20200520145736_3R_GH020072",
         "Seg_FieldData_20200520145736_1L_GH020068",
@@ -136,7 +136,7 @@
         "FieldData_20200515101008_1L_GH060067",
         "FieldData_20200508122912_3R_GH060070"
     ],
-    "annotations_list_gt": [
+    "annotations_list_full_hd": [
         "gt_train_FieldData_20200508122912_3R_GH060070",
         "gt_train_FieldData_20200515101008_1L_GH060067",
         "gt_train_FieldData_20190529141246_1R_GH020035",

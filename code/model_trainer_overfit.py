@@ -47,10 +47,10 @@ class ModelTrainer_overfit():
 
         # define training and validation data loaders
         self.data_loader = torch.utils.data.DataLoader(
-            self.dataset, batch_size=2, shuffle=False, num_workers=1, collate_fn=self.my_collate, drop_last=True)
+            self.dataset, batch_size=16, shuffle=False, num_workers=4, collate_fn=self.my_collate, drop_last=True)
         
         self.data_loader_test = torch.utils.data.DataLoader(
-            self.dataset_test, batch_size=2, shuffle=False, num_workers=1, collate_fn=self.my_collate, drop_last=True)
+            self.dataset_test, batch_size=16, shuffle=False, num_workers=4, collate_fn=self.my_collate, drop_last=True)
        
         if(self.settings[variant]['run_hpo'] == True):
             self.trial = None            
@@ -147,7 +147,7 @@ class ModelTrainer_overfit():
 
 
     def hpo(self):
-        study = optuna.create_study(storage="sqlite:///db.sqlite3:8087",
+        study = optuna.create_study(storage="sqlite:///train/db.sqlite3:8087",
                                     direction="minimize")
         study.optimize(self.hpo_trial, n_trials=self.settings['max_num_trials'])
         

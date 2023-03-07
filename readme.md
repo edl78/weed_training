@@ -28,7 +28,7 @@ To start training, the main docker-compose is used, run: `docker-compose up -d` 
 
 The trained networks can then be found in the mapped folder `train` or `/train` in the container. A file with optimal training parameters is also located together with the network.
 
-Bayesian hyper parameter search is implemented with the Optuna library. Use this by setting `run_hpo`: 1 in `code/settings_file_gt_train_val.json` under respective network. 
+Bayesian hyper parameter search is implemented with the Optuna library. Use this by setting `run_hpo`: 1 in `code/settings_file_train_val.json` under respective network. 
 
 To start the Optuna-dashboard:
 - Run `docker ps` to list the active containers. Use the `CONTAINER ID` for the `training:v2 image` and
@@ -42,7 +42,7 @@ To start the Optuna-dashboard:
 - Copy pickle files for full_hd `artefacts/pd_train_full_hd.pkl` and `artefacts/pd_val_full_hd.pkl` put these in `train/pickled_weed/`.
 - Run `docker-compose up` add -d at later runs if no std output is desired.
 - After training is completed a model is saved in `train/resnet18_model.pth`, it can be tested with metrics with `docker-compose-metrics.yml` which produces metric graphs in `train/result_figures` and a metrics json file in `train/class_metrics.json`
-- To run Bayesian hyper parameter search, set `run_hpo` to `1` and `use_settings_file` to `1` in the json config file in `code/settings_file_gt_train_val.json`.
+- To run Bayesian hyper parameter search, set `run_hpo` to `1` and `use_settings_file` to `1` in the json config file in `code/settings_file_train_val.json`.
 
 #### Complete setup for training
 - Upload annotations to CVAT by following the instructions in `To interact with CVAT` below.
@@ -80,7 +80,7 @@ To start the Optuna-dashboard:
     "search_epochs": 10,
     "num_initial_data_points": 5,
     "max_num_trials": 16,
-    "annotations_list": ["FieldData 20200520145736 1L GH020068",
+    "annotations_list_4k": ["FieldData 20200520145736 1L GH020068",
                         "FieldData 20200515101008 3R GH070071",
                         "FieldData 20200603102414 1L GH010353",
                         "FieldData 20200528110542 1L GH070073",
@@ -111,16 +111,19 @@ These are set in the config json-file examplified above.
 - `metrics_iou_range` is an array to define iou range for metrics.
 - `confidence_threshold_save_img` defines at what threshold to draw bounding boxes on the images.
 
-### To interact with CVAT
-Depending on what you are doing, these might be needed
-- Upload data to cvat once the cvat service is up (find docs in obdb_docs repo) with: `docker-compose -f docker-compose-upload-train-data-cvat.yml up` and `docker-compose -f docker-compose-upload-val_data-cvat.yml up`
-- Set all tasks in cvat to status complete by running: `docker-compose -f docker-compose-set-all-cvat-tasks-to-complete.yml up` this is needed since the weed_annotations dashboard collects all annotations from tasks that are set in status complete and inserts them into MongoDB.
+### To populate CVAT with images and annotations (first time only)
+To insert all the images and annoationas into CVAT, the following procedure must be followed:
 
+- Start mongodb service in `weed_annotations` (will start several services but the mongodb is the central one for this workflow), see `readme.md` in that repository.
+- Set similar `env.list` settings in `weed_training` as in `weed_annotations`.
+- Populate the new empty MongoDB with relevant data, see *Alternative 1* below.
+- Upload data to cvat (find docs in `obdb_docs` repo). 
+  
 
-### Load data into MongoDB
+#### Load data into MongoDB
 There are two ways to load annotations into MongoDB.
 
-*Alternative 1*: Load annotations into mongo with mongo interface. Install the MongoDB Database Tools by downloading from mongodb website and follow install instructions. Find the mongodb json files in the artefacts folder downloaded from the OBDB site. To import data into MongoDB use (fill in your username, password and port):
+*Alternative 1*: Load annotations into mongodb with mongoimport interface. Install the [MongoDB Database Tools](https://www.mongodb.com/docs/database-tools/installation/installation-linux/) by downloading from mongodb website and follow installation instructions. Find the mongodb json files in the artefacts folder downloaded from the OBDB site. To import data into MongoDB use (fill in your username, password and port):
 - Known bugs in the bitnami/mongodb: must initialize with port 27017 and do not change root user name! Otherwise it will not work...
 - https://www.mongodb.com/try/download/database-tools
 - For the annotation data: `mongoimport --username= --password= --host=localhost --port= --collection=annotation_data --db=annotations annotation_data.json`
@@ -133,13 +136,22 @@ There are two ways to load annotations into MongoDB.
 - Requires that you followed "To interact with CVAT" above and weed_annotations up and running.
 - MongoDB contents can be viewed via localhost:8081, on the MongoExpress GUI.
 
+#### Upload data to CVAT
+- First try to upload the validation data to CVAT (it is smaller and thus a good place to start) by: `docker-compose -f docker-compose-upload-val-data-cvat.yml up`
+- Upload training data by: `docker-compose -f docker-compose-upload-train-data-cvat.yml up`
+
+
+### To interact with CVAT
+
+- Set all tasks in cvat to status complete by running: `docker-compose -f docker-compose-set-all-cvat-tasks-to-complete.yml up` this is needed since the weed_annotations dashboard collects all annotations from tasks that are set in status complete and inserts them into MongoDB.
+
 
 ### Create pickle files
 - Update the MongoDB by pressing `update annotations` on the `weed_annotations` dashboard if new annotations have been added in CVAT.
-- Add any new CVAT tasks to the config file `code/settings_file_gt_train_val.json`. 
+- Add any new CVAT tasks to the config file `code/settings_file_train_val.json`. 
 - Add the training and validation frames in `/train/pickled_weed/*.npy`.
-- Add names of pickle files in `.env` and `env.list` and add the name of the task list, `TASK_LIST_NAME=` to use in the `code/settings_file_gt_train_val.json`. The pickle file will be created based on this task list and the list of validation and training frames in the `.npy` files.
-- Set `full_hd` to 1 or 0 in the `code/settings_file_gt_train_val.json` to set full_hd vs 4k. Create new pickle files for training by running `docker-compose-make-new-dataset.yml`. A good idea would be to name 4k pickle files `pd_train_4k.pkl` and `pd_val_4k.pkl` for example.
+- Add names of pickle files in `.env` and `env.list` and add the name of the task list, `TASK_LIST_NAME=` to use in the `code/settings_file_train_val.json`. The pickle file will be created based on this task list and the list of validation and training frames in the `.npy` files.
+- Set `full_hd` to 1 or 0 in the `code/settings_file_train_val.json` to set full_hd vs 4k. Create new pickle files for training by running `docker-compose-make-new-dataset.yml`. A good idea would be to name 4k pickle files `pd_train_4k.pkl` and `pd_val_4k.pkl` for example.
 
 
 ### Debugging
@@ -156,7 +168,7 @@ There are two ways to load annotations into MongoDB.
 ## Auto annotation - life-cycle of annotations
 **TBD**
 - Run with `docker-compose -f docker-compose-auto-annotate.yml up` 
-- Auto annotation parameters: "-f": path to folder with images as "/weed_data/fielddata/tractor-32-cropped/20190524130212/1R/GH010033", "--ext": imgage file extension such as "png", "-t": confidence threshold as "0.7", "-i": iou threshold if run on a task with prior annotations to be able to complete missing annotations set to "0.7" for example, "--model_path": path to PyTorch model to use for auto annotation run like "/train/resnet18_model.pth", "--settings_file": is the settings file given on the format of "/code/settings_file_gt_train_val.json".
+- Auto annotation parameters: "-f": path to folder with images as "/weed_data/fielddata/tractor-32-cropped/20190524130212/1R/GH010033", "--ext": imgage file extension such as "png", "-t": confidence threshold as "0.7", "-i": iou threshold if run on a task with prior annotations to be able to complete missing annotations set to "0.7" for example, "--model_path": path to PyTorch model to use for auto annotation run like "/train/resnet18_model.pth", "--settings_file": is the settings file given on the format of "/code/settings_file_train_val.json".
 - Setting file variables: "auto_annotation_class_map": used to map network output to object classes.
 - After Auto annotation run is finished and the data and annotations are uploaded to cvat, inspect annotations and correct if needed. Set the task to completed state and go to the weed_annotations dashboard. Update annotations to import them into MongoDB. Then decide on a training/validation split and update the files train_frames_full_hd.npy and val_frames_full_hd.npy that define the frames to include in the dataset.
 - Make a new dataset in two ways: By including the flag -m "True" in the weed_training docker-compose.yml. By running this docker-compose a new training will also be started. Or start the separate compose file: `docker-compose -f docker-compose-make-new-dataset.yml up`

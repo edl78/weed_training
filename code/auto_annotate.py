@@ -987,7 +987,7 @@ def do_whatever():
     uploader.get_tasks()
     #implement temp function to set a list of tasks in a state
     #settings = None        
-    #with open('/code/settings_file_gt_train_val.json') as json_file:            
+    #with open('/code/settings_file_train_val.json') as json_file:            
     #    settings = json.load(json_file)
     
     #for task in settings['first_year_tasks']:
@@ -1144,7 +1144,7 @@ if __name__ == "__main__":
     parser.add_argument('--src', type=str, help='source folder to search for images', required=False)
     parser.add_argument('--dst', type=str, help='destination root folder for cropped images, paths will be preserved', required=False)
     parser.add_argument('--model_path', type=str, help='model path for auto annotation', required=False)
-    parser.add_argument('--settings_file', type=str, default='/code/settings_file_gt_train_val.json', help='settings_file', required=False)
+    parser.add_argument('--settings_file', type=str, default='/code/settings_file_train_val.json', help='settings_file', required=False)
     parser.add_argument('--class_map', type=str, default='default_class_map', help='class_map name in settings file', required=False)
 
     args = parser.parse_args()
