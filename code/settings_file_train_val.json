@@ -76,6 +76,7 @@
     "num_initial_data_points": "infer",
     "max_num_trials": 32,
     "hpo_timeout": 6000,
+    "start_on_checkpoint": 0,
     "annotations_list_4k": [
         "Seg_FieldData_20200520145736_3R_GH070072",
         "Seg_FieldData_20200520145736_3R_GH020072",

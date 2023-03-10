@@ -85,6 +85,14 @@ class ModelTrainer():
                                                     step_size=self.optimal_settings['step_size'],
                                                     gamma=self.optimal_settings['gamma'])
 
+        #start from checkpoint?
+        if(settings['start_on_checkpoint']):
+            print('try to start from checkpoint')
+            checkpoint = torch.load('/train/checkpoint.pt')
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            #skip epoch and loss, just take off from here
+
         for epoch in range(self.settings['max_train_epochs']):
             self.train_run(epoch=epoch, optimizer=optimizer, variant=self.variant)
             self.eval_run(optimizer=optimizer, epoch=epoch)                
@@ -184,6 +192,12 @@ class ModelTrainer():
                     self.model.train()
                     torch.save(self.model, '/train/' + self.variant + '_model.pth')
                     self.plateau_cnt = 0
+                    #also save a checkpoint
+                    torch.save({'epoch': epoch,
+                                'model_state_dict': self.model.state_dict(),
+                                'optimizer_state_dict': optimizer.state_dict(),
+                                'loss': running_loss,
+                                }, '/train/checkpoint.pt')
             
                 #stop?
                 if(self.plateau_cnt == self.settings['max_plateau_count']):                    
