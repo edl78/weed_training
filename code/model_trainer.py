@@ -62,6 +62,8 @@ class ModelTrainer():
     def train_model(self, settings_file=None):
         if(self.variant == "retina_net"):
             self.model = models.get_retina_model_with_args(num_classes=self.num_classes)
+        elif(self.variant == "resnet18_weeds_pretrained"):
+            self.model = models.get_model_weeds_pretrained(model_name=self.variant, num_classes=self.num_classes)
         else:
             self.model = models.get_model_with_args(model_name=self.variant, num_classes=self.num_classes)
 
@@ -86,9 +88,9 @@ class ModelTrainer():
                                                     gamma=self.optimal_settings['gamma'])
 
         #start from checkpoint?
-        if(settings['start_on_checkpoint']):
+        if(self.settings['start_on_checkpoint']):
             print('try to start from checkpoint')
-            checkpoint = torch.load('/train/checkpoint.pt')
+            checkpoint = torch.load('/train/'+ self.variant +'_checkpoint.pt')
             self.model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             #skip epoch and loss, just take off from here
@@ -173,15 +175,21 @@ class ModelTrainer():
             losses = sum(loss for loss in loss_dict.values())
             
             running_loss += losses.item()
-                        
-
+                                    
             if((i+1)%(num_meas)==0):
                 running_loss /= num_meas 
                 print('validation loss: ', running_loss)
                 self.writer.add_scalar(self.variant + '/validation loss',
                                 running_loss, epoch)
 
-                
+                #also save a checkpoint
+                if((epoch)%(10)==0):
+                    torch.save({'epoch': epoch,
+                                'model_state_dict': self.model.state_dict(),
+                                'optimizer_state_dict': optimizer.state_dict(),
+                                'loss': running_loss,
+                                }, '/train/epoch_'+ str(epoch) + '_' + self.variant +'_checkpoint.pt')
+                    
                 #only count plateau when in final training                
                 self.plateau_cnt += 1
                 print('plateau count: ' + str(self.plateau_cnt))
@@ -192,12 +200,12 @@ class ModelTrainer():
                     self.model.train()
                     torch.save(self.model, '/train/' + self.variant + '_model.pth')
                     self.plateau_cnt = 0
-                    #also save a checkpoint
+                    #best loss checkpoint
                     torch.save({'epoch': epoch,
                                 'model_state_dict': self.model.state_dict(),
                                 'optimizer_state_dict': optimizer.state_dict(),
                                 'loss': running_loss,
-                                }, '/train/checkpoint.pt')
+                                }, '/train/' + self.variant +'_checkpoint_best_val_loss.pt')
             
                 #stop?
                 if(self.plateau_cnt == self.settings['max_plateau_count']):                    

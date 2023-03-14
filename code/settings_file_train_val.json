@@ -1,7 +1,7 @@
 {
     "full_hd": 1,
     "variants": [
-        "resnet18"
+        "resnet18_weeds_pretrained"
     ],
     "retina_net": {
         "run_hpo": 1,
@@ -15,6 +15,17 @@
         }
     },
     "resnet18": {
+        "run_hpo": 0,
+        "use_settings_file": 1,
+        "optimal_hpo_settings": {
+            "gamma": 0.9,
+            "lr": 0.01,
+            "momentum": 0.1,
+            "step_size": 5,
+            "weight_decay": 0.0007004410071105531
+        }
+    },
+    "resnet18_weeds_pretrained": {
         "run_hpo": 0,
         "use_settings_file": 1,
         "optimal_hpo_settings": {
