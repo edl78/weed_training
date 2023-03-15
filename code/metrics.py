@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+#this class is not in use, attempt to make more complete metrics class
 class DetectionMetrics():
     def __init__(self, class_map=None, confidence_thresholds=[0.7], iou_thresholds=[0.5]):
         self.num_classes = len(class_map)

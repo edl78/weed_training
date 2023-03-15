@@ -11,9 +11,7 @@ import torch.nn as nn
 import pandas
 import json
 from pprint import pprint
-from metrics import DetectionMetrics
 import matplotlib.pyplot as plt
-from torchmetrics.detection.mean_ap import MeanAveragePrecision
 from pprint import pprint
 #padilla code need to be located in the same directory as the code calling it
 from Evaluator import Evaluator
@@ -112,10 +110,7 @@ def automatic_per_class_metric_test(model_path=None, pickle_file=None, save_imgs
     dataset_test = WeedDataOD(pandas_file=pickle_file, device=device, transform=data_transform, class_map=class_map)
     data_loader_test = torch.utils.data.DataLoader(
         dataset_test, batch_size=2, shuffle=False, num_workers=1, collate_fn=my_collate, drop_last=True)
-
-    my_metrics = DetectionMetrics(class_map, confidence_thresholds=confidence_threshold, iou_thresholds=iou_threshold)
-    #torch_metric = MeanAveragePrecision(iou_type="bbox", iou_thresholds= [0.50, 0.60, 0.70, 0.80, 0.90], class_metrics=True)
-    torch_metric = MeanAveragePrecision(iou_type="bbox", class_metrics=True)
+    
     myBoundingBoxes = BoundingBoxes()
     
     for i, data in enumerate(data_loader_test, 0): 
@@ -186,9 +181,7 @@ def automatic_per_class_metric_test(model_path=None, pickle_file=None, save_imgs
                 preds_cpu['boxes'] = preds[r]['boxes'].detach().cpu()
                 preds_cpu['labels'] = preds[r]['labels'].detach().cpu()
                 preds_cpu['scores'] = preds[r]['scores'].detach().cpu()
-                my_metrics.update(predictions=result_detection_metrics, gt=gt)
-                torch_metric.update([preds_cpu], [targets[r]])
-
+    
             for g in range(len(gt['labels'])):
                 gt_boundingBox = BoundingBox(imageName='img_' + str(i) + '_' + str(r), classId=class_map[gt['labels'][g]], x=gt['boxes'][g][0], y=gt['boxes'][g][1], 
                                     w=gt['boxes'][g][2], h=gt['boxes'][g][3], typeCoordinates=CoordinatesType.Absolute,
@@ -204,8 +197,6 @@ def automatic_per_class_metric_test(model_path=None, pickle_file=None, save_imgs
                 myBoundingBoxes.addBoundingBox(detected_boundingBox)
 
 
-    my_metrics.calc_metrics(metrics_save_path=metrics_save_path)
-    pprint(torch_metric.compute())
     evaluator = Evaluator()
     metricsPerClass = evaluator.GetPascalVOCMetrics(myBoundingBoxes, IOUThreshold=0.3)
     print("Average precision values per class:\n")
@@ -234,7 +225,7 @@ def automatic_per_class_metric_test(model_path=None, pickle_file=None, save_imgs
     with open('/train/AveragePrecision_' + datestr + '.json', 'w') as ap_file:            
             json.dump(AP, ap_file)
 
-    print('nice stopping point to print stats...')
+    print('Average precision metrics per class done, find the results in: ' + '/train/AveragePrecision_' + datestr + '.json')
 
 
 
@@ -260,11 +251,11 @@ if __name__ == "__main__":
     if(limit_metrics):
         metrics_confidence_range = settings['metrics_confidence_range_small']
         metrics_iou_range = settings ['metrics_iou_range_small']
+        print('run with limited range on metrics')
     else:
         metrics_confidence_range = settings['metrics_confidence_range']
         metrics_iou_range = settings ['metrics_iou_range']
     
-    metrics_save_path = args.save_path + '/class_metrics.json'        
     
     try:
         weeds = Weeds(port=int(os.environ["MONGODB_PORT"]))    
@@ -282,8 +273,3 @@ if __name__ == "__main__":
                                     iou_threshold=metrics_iou_range, class_map=class_map,
                                     confidence_threshold_save_img=settings['confidence_threshold_save_img'])
     
-
-    #do graphs as separate step here
-    metrics = DetectionMetrics(class_map=class_map, confidence_thresholds=metrics_confidence_range, iou_thresholds=metrics_iou_range)    
-    metrics.make_graphs(metrics_json_path=metrics_save_path, figure_save_folder=args.save_path + '/result_figures')
-        
