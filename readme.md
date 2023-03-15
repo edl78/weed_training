@@ -39,9 +39,9 @@ To start the Optuna-dashboard:
 
 
 #### For fast-track
-- Copy pickle files for full_hd `artefacts/pd_train_full_hd.pkl` and `artefacts/pd_val_full_hd.pkl` put these in `train/pickled_weed/`.
+- Use pickle files for full_hd `pd_train_full_hd.pkl` and `pd_val_full_hd.pkl` found in `train/pickled_weed/`. These are used by default.
 - Run `docker-compose up` add -d at later runs if no std output is desired.
-- After training is completed a model is saved in `train/resnet18_model.pth`, it can be tested with metrics with `docker-compose-metrics.yml` which produces metric graphs in `train/result_figures` and a metrics json file in `train/class_metrics.json`
+- After training is completed a model is saved in `train/resnet18_model.pth`, it can be tested with metrics with `docker-compose -f docker-compose-metrics.yml` which produces a json file with average precision per class in `train/AveragePrecision_YYYY_MM_DD_HH_MM_SS.json`
 - To run Bayesian hyper parameter search, set `run_hpo` to `1` and `use_settings_file` to `1` in the json config file in `code/settings_file_train_val.json`.
 
 #### Complete setup for training
@@ -162,7 +162,7 @@ There are two ways to load annotations into MongoDB.
 - Copy trained model to `/train`. For simple test copy `resnet18_model.pth` from `artefacts` folder to `/train`, otherwise use your own model. Path to model can also be set in `docker-compose-metrics.yml`. Change other parameters as required.
 - Run with: `docker-compose -f docker-compose-metrics.yml up`
 - Output in `train/AveragePrecision_YY_MM_DD_HH_MM_SS.json`, where `YY_MM_DD_HH_MM_SS` is the date. 
-- TODO: Remove other metrics? class_metrics.json which is used to produce graphs default put under `train/result_figures/` with a number of SVG files.
+
 
 
 ## Auto annotation - life-cycle of annotations
