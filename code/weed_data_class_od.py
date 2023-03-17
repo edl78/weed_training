@@ -50,11 +50,8 @@ class WeedDataOD(Dataset):
         #translate class into global class list 
         num_objs = len(entry["labels"])        
         labels = []
-        for i in range(num_objs):
-            if(self.class_map[0] == 'Background'):
-                labels.append(self.class_map.index(entry['labels'][i]))
-            else:
-                labels.append(self.class_map.index(entry['labels'][i]) + 1)
+        for i in range(num_objs):            
+            labels.append(self.class_map.index(entry['labels'][i]))
 
         # convert everything into a torch.Tensor        
         boxes_tensor = torch.as_tensor(boxes, dtype=torch.float32)
