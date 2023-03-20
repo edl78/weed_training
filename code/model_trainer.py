@@ -51,10 +51,10 @@ class ModelTrainer():
 
         # define training and validation data loaders
         self.data_loader = torch.utils.data.DataLoader(
-            self.dataset, batch_size=2, shuffle=True, num_workers=2, collate_fn=self.my_collate, drop_last=True)
+            self.dataset, batch_size=16, shuffle=True, num_workers=8, collate_fn=self.my_collate, drop_last=True)
         
         self.data_loader_test = torch.utils.data.DataLoader(
-            self.dataset_test, batch_size=2, shuffle=False, num_workers=2, collate_fn=self.my_collate, drop_last=True)
+            self.dataset_test, batch_size=8, shuffle=False, num_workers=2, collate_fn=self.my_collate, drop_last=True)
        
         self.optimal_settings = self.settings[variant]['optimal_hpo_settings']
 
@@ -88,9 +88,9 @@ class ModelTrainer():
                                                     gamma=self.optimal_settings['gamma'])
 
         #start from checkpoint?
-        if(self.settings['start_on_checkpoint']):
+        if(self.settings['start_on_checkpoint'] > 0):
             print('try to start from checkpoint')
-            checkpoint = torch.load('/train/'+ self.variant +'_checkpoint.pt')
+            checkpoint = torch.load('/train/epoch_' + self.settings['start_on_checkpoint'] + '_' + self.variant +'_checkpoint.pt')
             self.model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             #skip epoch and loss, just take off from here

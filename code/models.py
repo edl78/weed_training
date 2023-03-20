@@ -54,8 +54,8 @@ def get_retina_model_with_args(num_classes=3):
     return model
 
 
-def get_model_weeds_pretrained(model_name='resnet50', num_classes=3, 
-                                model_path='/train/models/resnet18_model_a100.pth',
+def get_model_weeds_pretrained(model_name='resnet18', num_classes=3, 
+                                model_path='/train/models/resnet18_model_weeds_pretrained.pth',
                                 pretrained_num_classes=10):
     #should get the same as below...
     from torchvision.models.detection.backbone_utils import resnet_fpn_backbone

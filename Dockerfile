@@ -13,7 +13,9 @@ RUN pip3 install pandas numpy scipy scikit-learn flask
 RUN pip3 install matplotlib setuptools
 #RUN pip3 install parameter-sherpa
 RUN apt-get update && apt-get install -y xauth
-RUn pip3 install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
+# We are getting torchvision from git due to bug
+#RUn pip3 install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
+RUn pip3 install torch==1.12.1+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
 RUN pip3 install pymongo
 RUN pip3 install flask
 RUN pip3 install numpyencoder
