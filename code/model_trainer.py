@@ -210,7 +210,7 @@ class ModelTrainer():
                                 'model_state_dict': self.model.state_dict(),
                                 'optimizer_state_dict': optimizer.state_dict(),
                                 'loss': running_loss,
-                                }, '/train/' + self.variant +'_checkpoint_best_val_loss.pt')
+                                }, '/train/' + self.variant +'_checkpoint_best_val_loss_epoch_' + str(epoch) + '.pt')
             
                 #stop?
                 if(self.plateau_cnt == self.settings['max_plateau_count']):                    

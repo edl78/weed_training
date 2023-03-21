@@ -20,21 +20,23 @@ def main(weed_file, root_folder, base_url, remote_path):
     with open(weed_file) as downloads_file:
             download_list = downloads_file.readlines()
 
+    tar_files = []
     for file in download_list:
-        file_fixed = file.split('\n')[0]
-        print("")
-        if (path.exists(root_folder + remote_path + file_fixed)):
+        file_fixed = file.split('\n')[0]      
+        if (path.exists(root_folder + remote_path + '/' + file_fixed)):
             print('Skipping ' + base_url + '/' + file_fixed)
         else:
             print('Downloading ' + base_url + '/' + file_fixed)
             wget.download(base_url + '/' + file_fixed, out=root_folder + remote_path, bar=progressBar)
+            tar_files.append(root_folder + remote_path + '/' + file_fixed)
+            
 
     #extract each folder
-    tar_files = glob.glob(root_folder + remote_path + '/**/*.tar.gz', recursive=True)
+    #tar_files = glob.glob(root_folder + remote_path + '/**/*.tar.gz', recursive=True)
     for file in tar_files:
         f = tarfile.open(name=file, mode='r:gz')
         print("")
-        print('Extracting ' + file )
+        print('Extracting ' + file , flush=True)
         f.extractall(path=root_folder + '/')
 
 
