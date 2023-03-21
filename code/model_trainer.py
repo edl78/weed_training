@@ -63,7 +63,10 @@ class ModelTrainer():
         if(self.variant == "retina_net"):
             self.model = models.get_retina_model_with_args(num_classes=self.num_classes)
         elif(self.variant == "resnet18_weeds_pretrained"):
-            self.model = models.get_model_weeds_pretrained(model_name=self.variant, num_classes=self.num_classes)
+            self.model = models.get_model_weeds_pretrained(model_name=self.variant, 
+                                                           model_path=self.settings[self.variant]['pretrained_model_path'], 
+                                                           num_classes=self.num_classes,
+                                                           pretrained_num_classes=len(self.settings['default_class_map']))
         else:
             self.model = models.get_model_with_args(model_name=self.variant, num_classes=self.num_classes)
 
@@ -87,15 +90,17 @@ class ModelTrainer():
                                                     step_size=self.optimal_settings['step_size'],
                                                     gamma=self.optimal_settings['gamma'])
 
+        start_epoch = 0
         #start from checkpoint?
         if(self.settings['start_on_checkpoint'] > 0):
             print('try to start from checkpoint')
-            checkpoint = torch.load('/train/epoch_' + self.settings['start_on_checkpoint'] + '_' + self.variant +'_checkpoint.pt')
+            checkpoint = torch.load('/train/epoch_' + str(self.settings['start_on_checkpoint']) + '_' + self.variant +'_checkpoint.pt')
             self.model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            start_epoch = self.settings['start_on_checkpoint']
             #skip epoch and loss, just take off from here
 
-        for epoch in range(self.settings['max_train_epochs']):
+        for epoch in range(start_epoch,self.settings['max_train_epochs']):
             self.train_run(epoch=epoch, optimizer=optimizer, variant=self.variant)
             self.eval_run(optimizer=optimizer, epoch=epoch)                
             if(self.stop_training == True):

@@ -55,8 +55,8 @@ def get_retina_model_with_args(num_classes=3):
 
 
 def get_model_weeds_pretrained(model_name='resnet18', num_classes=3, 
-                                model_path='/train/models/resnet18_model_weeds_pretrained.pth',
-                                pretrained_num_classes=10):
+                                model_path='/train/models/YOUR_PRETRAINED_MODEL.pth',
+                                pretrained_num_classes=11):
     #should get the same as below...
     from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
@@ -65,11 +65,14 @@ def get_model_weeds_pretrained(model_name='resnet18', num_classes=3,
     #false on pretained (imagenet), will be replaced with coco
     #backbone = resnet_fpn_backbone(model_name, pretrained=imagenet_pretrained_backbone, trainable_layers=5)
     pretrained_model = torch.load(model_path)
+    print(model_path)
     backbone = pretrained_model.backbone
     state_dict_pretrained = pretrained_model.state_dict()
+    
     #adapt to new format
-    state_dict_pretrained["rpn.head.conv.0.0.bias"] = state_dict_pretrained.pop("rpn.head.conv.bias")
-    state_dict_pretrained["rpn.head.conv.0.0.weight"] = state_dict_pretrained.pop("rpn.head.conv.weight")
+    #state_dict_pretrained["rpn.head.conv.0.0.bias"] = state_dict_pretrained.pop("rpn.head.conv.bias")
+    #state_dict_pretrained["rpn.head.conv.0.0.weight"] = state_dict_pretrained.pop("rpn.head.conv.weight")
+    
     #anchor_generator = AnchorGenerator(
     #    sizes=((16,), (32,), (64,), (128,), (256,)),
     #    aspect_ratios=tuple([(0.25, 0.5, 1.0, 2.0) for _ in range(5)]))

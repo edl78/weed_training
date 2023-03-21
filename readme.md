@@ -163,7 +163,7 @@ There are two ways to load annotations into MongoDB.
 
 
 ### Metrics
-- Copy trained model to `/train`. Path to model can also be set in `docker-compose-metrics.yml`. Change other parameters as required.
+- Copy trained model to `/train/models`. Path to model can also be set in `docker-compose-metrics.yml`. Change other parameters as required.
 - Run with: `docker-compose -f docker-compose-metrics.yml up`
 - Output in `train/AveragePrecision_YY_MM_DD_HH_MM_SS.json`, where `YY_MM_DD_HH_MM_SS` is the date. 
 

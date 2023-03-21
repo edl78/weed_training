@@ -27,6 +27,7 @@
     },
     "resnet18_weeds_pretrained": {
         "run_hpo": 0,
+        "pretrained_model_path": "/train/models/resnet18_weeds_pretrained_model.pth",
         "use_settings_file": 1,
         "optimal_hpo_settings": {
             "gamma": 0.9,
