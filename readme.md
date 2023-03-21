@@ -1,6 +1,6 @@
 # Training repo for the OBDB project
 
-For an overview of the Openweeds project and some background on this documentation see [obdb_docs](https://github.com/edl78/obdb_docs).
+For an overview of the Openweeds project, some background on this documentation and instructions on how to get the data, please see [obdb_docs](https://github.com/edl78/obdb_docs).
 
 ## Architecture
 - The code depends on having a mongodb instance with all annotation data collected from CVAT, meaning weed_annotations must first be started (unless going for *fast-track to training*, see [obdb_docs](https://github.com/edl78/obdb_docs).
@@ -13,13 +13,17 @@ For an overview of the Openweeds project and some background on this documentati
 
 
 
-## How to run
-- Fill usernames and passwords in the env files .env and env.list, .env is used by docker-compose and env.list is sent as environment variables into the container.
+## How to run (and get data)
+- Fill usernames and passwords in the env files `.env` and `env.list`, `.env` is used by docker-compose and `env.list` is sent as environment variables into the container.
+### Accepting data license agreement
+- You **MUST** accept the license agreement for the data by setting the variable `ACCEPT_ARTEFACTS_LICENSE` in the `env.list` to `YESPLEASE` to enable data download. No data will be downloaded before you accept the license for the data. See `LICENSE-DATA.md`.
 ### Needed to be run once at the start
 - Shell scripts for building docker image: `sh build_training.sh`
 - To download the images run full_hd (recommended and supported): `docker-compose -f docker-compose-download-full-hd.yml up` or for 4k versions: `docker-compose -f docker-compose-download-4k.yml up`
 - To download the artefacts (annotations, pre-trained model and other necessary files) run: `docker-compose -f docker-compose-download-artefacts.yml up`
-- There is an optional WASP(**TBD: add link**) contributed segmentation dataset, it can be uploaded to cvat via `docker-compose -f docker-compose-upload-wasp-segmentation-data-cvat.yml up` and assumes the data folder with images named wasp is located in the fielddata folder.
+- To download camera calibration data (checker board images for each camera) run: `docker-compose -f docker-compose-download-calibration.yml up`
+- To download tSNE data for the datasets run: `docker-compose -f docker-compose-download-tSNE.yml up`
+- There is an optional dataset contributed by [WASP](https://wasp-sweden.org/) for segmentation. To download the WASP segmentations run: `docker-compose -f docker-compose-download-wasp.yml up` This dataset can be uploaded to cvat via `docker-compose -f docker-compose-upload-wasp-segmentation-data-cvat.yml up` and assumes the data folder with images named wasp is located in the fielddata folder.
 
 ### Training
 All training depend on pickle files. These can be created (see Auto-annotations section below) or found in the `/train/pickled_weed/` folder. The path to the pickle files to be used can be set by changing the variables `TRAINING_PICKLE_PATH` and `VALIDATION_PICKLE_PATH` in the `.env` file. *Important to note that these paths are not host paths but rather paths as seen from the inside of the container using them.* Thus any pickle file must be found somewhere under the `train` folder as mounted by the docker-compose file.
@@ -165,8 +169,7 @@ There are two ways to load annotations into MongoDB.
 
 
 
-## Auto annotation - life-cycle of annotations
-**TBD**
+## Auto annotation - life-cycle of annotations **TBD**
 - Run with `docker-compose -f docker-compose-auto-annotate.yml up` 
 - Auto annotation parameters: "-f": path to folder with images as "/weed_data/fielddata/tractor-32-cropped/20190524130212/1R/GH010033", "--ext": imgage file extension such as "png", "-t": confidence threshold as "0.7", "-i": iou threshold if run on a task with prior annotations to be able to complete missing annotations set to "0.7" for example, "--model_path": path to PyTorch model to use for auto annotation run like "/train/resnet18_model.pth", "--settings_file": is the settings file given on the format of "/code/settings_file_train_val.json".
 - Setting file variables: "auto_annotation_class_map": used to map network output to object classes.

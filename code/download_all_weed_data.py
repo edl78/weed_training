@@ -47,4 +47,33 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--remote_path', type=str, default='/tractor-33-zipped', help='download artefacts instead of images', required=False)
 
     args = parser.parse_args()
-    main(weed_file=args.file, root_folder=args.root_download_folder, base_url=args.base_url, remote_path=args.remote_path)
+    
+    try:
+        fh = open('/code/LICENCE-DATA.md', 'r')
+    except:
+        print("Could not find licence file. Exiting.")
+        exit(1)
+        
+    file_contents = fh.read()
+    print(file_contents)
+    fh.close()
+    
+    print("")
+    print("-----------------------------------------------------------------------------------------------")
+    print("")
+    
+    try:
+        answer = os.environ['ACCEPT_ARTEFACTS_LICENSE']
+    except:
+        answer = "NO"       
+    
+    if (answer == "YESPLEASE"):
+        print("License agreed upon. Will download artefact.")
+        print("")
+        print("-----------------------------------------------------------------------------------------------")
+        print("")
+        main(weed_file=args.file, root_folder=args.root_download_folder, base_url=args.base_url, remote_path=args.remote_path)
+    else:
+        print("License not agreed upon. Will NOT download artefact.")
+        print("If you agree to the above license, please set ACCEPT_ARTEFACTS_LICENSE=YESPLEASE in 'env.list'")
+        print("Exit.")

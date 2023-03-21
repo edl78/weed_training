@@ -5,7 +5,7 @@ services:
     env_file:
       - env.list
     image: training:v2
-    container_name: weed_training    
+    container_name: weed_training_download_tSNE
     volumes:
       - ./train:/train
       - ./code:/code
