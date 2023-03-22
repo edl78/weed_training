@@ -180,3 +180,7 @@ There are two ways to load annotations into MongoDB.
 # Academic citation
 
 Please see the [main webpage](https://openweeds.linkoping-ri.se/howtocite.html) for information on how to cite.
+
+# Issues?
+
+Please use the github issues for this repo to report any issues on it.
