@@ -16,7 +16,7 @@ For an overview of the Openweeds project, some background on this documentation 
 ## How to run (and get data)
 - Fill usernames and passwords in the env files `.env` and `env.list`, `.env` is used by docker-compose and `env.list` is sent as environment variables into the container.
 ### Accepting data license agreement
-- You **MUST** accept the license agreement for the data by setting the variable `ACCEPT_ARTEFACTS_LICENSE` in the `env.list` to `YESPLEASE` to enable data download. No data will be downloaded before you accept the license for the data. See `LICENSE-DATA.md`.
+- You **MUST** accept the license agreement for the data by setting the variable `ACCEPT_ARTEFACTS_LICENSE` in the `env.list` to `YESPLEASE` to enable data download. No data will be downloaded before you accept the license for the data. See `LICENSE-DATA.md` for the license text.
 ### Needed to be run once at the start
 - Shell scripts for building docker image: `sh build_training.sh`
 - To download the images run full_hd (recommended and supported): `docker-compose -f docker-compose-download-full-hd.yml up` or for 4k versions: `docker-compose -f docker-compose-download-4k.yml up`
@@ -177,6 +177,6 @@ There are two ways to load annotations into MongoDB.
 - Make a new dataset in two ways: By including the flag -m "True" in the weed_training docker-compose.yml. By running this docker-compose a new training will also be started. Or start the separate compose file: `docker-compose -f docker-compose-make-new-dataset.yml up`
 
 
+# Academic citation
 
-
-
+Please see the [main webpage](https://openweeds.linkoping-ri.se/howtocite.html) for information on how to cite.
